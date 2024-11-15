@@ -1,0 +1,53 @@
+# name cost damage damageType weight(lb) properties
+# properties: - = propertie seperator; 
+# _ = multiworded property
+
+Simple Melee Weapons
+Club 		1_sp 	1d4 	bludgeoning 	2 	light
+Dagger 		2_gp 	1d4 	piercing 	1 	Finesse-Light-Thrown(20/60)
+Greatclub 	2_sp 	1d8 	bludgeoning 	10 	Two_handed
+Handaxe 	5_gp 	1d6 	slashing 	2 	Light-Thrown(20/60)
+Javelin 	5_sp 	1d6 	piercing 	2 	Thrown(30/120)
+Light_Hammer 	2_gp 	1d4 	bludgeoning 	2 	Light-Thrown(20/60)
+Mace 		5_gp 	1d6 	bludgeoning 	4	None
+Quarterstaff 	2_sp 	1d6 	bludgeoning 	4 	Versatile(1d8)
+Sickle 		1_gp 	1d4 	slashing 	2 	Light
+Spear 		1_gp 	1d6 	piercing 	3 	Thrown(20/60)-Versatile(1d8)
+
+Simple Ranged Weapons
+Light_Crossbow 	25_gp 	1d8 	piercing 	5 	Ammunition(80/320)-Loading-Two_Handed
+Dart 		5_cp 	1d4 	piercing 	1/4 	Finesse-Thrown(20/60)
+Shortbow 	25_gp 	1d6 	piercing 	2 	Ammunition(80/320)-Two_Handed
+Sling 		1_sp 	1d4 	bludgeoning 	0	Ammunition(30/120)
+
+Martial Melee Weapons
+Battleaxe 	10_gp 	1d8 	slashing 	4 	Versatile (1d10)
+Flail 		10_gp 	1d8 	bludgeoning 	2 	None
+Glaive 		20_gp 	1d10 	slashing 	6 	Heavy, reach, two-handed
+Greataxe 	30_gp 	1d12 	slashing 	7 	Heavy, two-handed
+Greatsword 	50_gp 	2d6 	slashing 	6  	Heavy, two-handed
+Halberd 	20_gp 	1d10 	slashing 	6  	Heavy, reach, two-handed
+Lance 		10_gp 	1d12 	piercing 	6  	Reach, special
+Longsword 	15_gp 	1d8 	slashing 	3  	Versatile (1d10)
+Maul 		10_gp 	2d6 	bludgeoning 	10  	Heavy, two-handed
+Morningstar 	15_gp 	1d8 	piercing 	4  	None
+Pike 		5_gp 	1d10 	piercing 	18  	Heavy, reach, two-handed
+Rapier 		25_gp 	1d8 	piercing 	2  	Finesse
+Scimitar 	25_gp 	1d6 	slashing 	3  	Finesse, light
+Shortsword 	10_gp 	1d6 	piercing 	2  	Finesse, light
+Trident 	5_gp 	1d6 	piercing 	4  	Thrown (range 20/60), versatile (1d8)
+War_pick 	5_gp 	1d8 	piercing 	2  	None
+Warhammer 	15_gp 	1d8 	bludgeoning 	2  	Versatile (1d10)
+Whip 		2_gp 	1d4 	slashing 	3  	Finesse, reach 
+
+Martial Ranged Weapons
+Blowgun 	10_gp 	1d1 	piercing 	1 	Ammunition(25/100)-Loading
+Hand_Crossbow  	75_gp 	1d6 	piercing 	3 	Ammunition(30/120)-Light-Loading
+Heavy_Crossbow  50_gp 	1d10 	piercing 	18 	Ammunition(100/400)-Heavy-Loading-Two_Handed
+Longbow 	50_gp 	1d8 	piercing 	2 	Ammunition(150/600)-Heavy-Two_Handed
+Net 		1_gp 	0d1 	None		3 	Special-Thrown(5/15)
+
+###
+###
+###
+###
