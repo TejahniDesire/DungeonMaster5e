@@ -1,0 +1,12 @@
+
+
+QTHelper
+
+customWindows
+
+customTabs -> 
+              customWidgets -> customWindows
+                            -> QTHelper
+                            -> style
+                            -> *charecterF*
+                            -> *objectF*
