@@ -65,13 +65,13 @@ class MainTab(QWidget):
         self.attribute_labels = customWidgets.AllStatWidgets(tcharecter.get_attribute,tcharecter.get_skills_of_attribute) # Attributes, Skills 
 
         # top_layout_______________________________
-        self.top_widget = customWidgets.RPWidget(tcharecter.get_all_top(),tcharecter.get_time()) # Top stats (name, class, level, background, Race, Aligment, Experience Points)
+        self.top_widget = customWidgets.RPWidget(tcharecter.get_all_top()) # Top stats (name, class, level, background, Race, Aligment, Experience Points)
 
         # Mid_layout_______________________________
         mid_layout = QVBoxLayout()
         # Mid top stats (AC, initiative, speed, max hit points, current hit points)
         # Mid mid stats (Hit dice, Death Saving throws)
-        self.mid_widget = customWidgets.MiddleWidget(tcharecter.get_all_mid_top(), tcharecter.get_all_mid_mid()) 
+        self.mid_widget = customWidgets.MiddleWidget(tcharecter.get_all_mid_top(), tcharecter.get_all_mid_mid(),tcharecter.get_time()) 
         mid_layout.addWidget(self.mid_widget.get_widget())
 
         # test_button = QPushButton('test')

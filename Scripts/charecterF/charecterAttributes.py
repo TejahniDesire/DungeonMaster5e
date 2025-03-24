@@ -221,8 +221,7 @@ class Skill:
         # exceptions = ['prof','expert']
         for name in list(self.contrib):
             bonus += self.contrib[name].getValue()
-
-
+        
 
         self.bonus.setValue(bonus)
 

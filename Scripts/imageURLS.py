@@ -1,7 +1,0 @@
-AppURL = "/home/tej/Desktop/Code_Stuff/Repositories/pro_dragon/The_Dungeon_of_the_Dragon/Scripts/"
-IconUrl = AppURL + "images/editIcon.png"
-AddUrl = AppURL + "images/plusIcon.png"
-MinusUrl = AppURL + "images/minusIcon.png"
-CheckUrl = AppURL + "images/checkIcon.png"
-XUrl = AppURL + "images/xIcon.png"
-RefreshUrl = AppURL + "images/refreshIcon.png"

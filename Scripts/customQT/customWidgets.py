@@ -15,7 +15,9 @@ from PyQt5.QtWidgets import (
     QTextEdit,
     QCheckBox,
     QGridLayout,
-    QLineEdit
+    QLineEdit,
+    QScrollArea,
+    QSlider
 )
 
 from PyQt5.QtGui import (
@@ -207,16 +209,16 @@ class AllStatWidgets:
 
 class RPWidget:
 
-    def __init__(self, top_stats: list[charecterAttributes.TopStatValue],time):
+    def __init__(self, top_stats: list[charecterAttributes.TopStatValue]):
         self.tp = top_stats
 
         # Main Widget to be given to app
         self.main_widget = QWidget()
 
-        main_layout = QHBoxLayout(self.main_widget)
+        main_layout = QVBoxLayout(self.main_widget)
 
         left_layout = QVBoxLayout(self.main_widget)
-        main_layout.addLayout(left_layout)
+        main_layout.addLayout(left_layout,stretch=3)
 
         # Upper layout has Name, Class and level
         upper_layout = QHBoxLayout()
@@ -234,9 +236,9 @@ class RPWidget:
         left_layout.addWidget(separator2)
 
 
-        separator3 = QFrame()
-        separator3.setFrameShape(QFrame.VLine)
-        main_layout.addWidget(separator3)
+        # separator3 = QFrame()
+        # separator3.setFrameShape(QFrame.VLine)
+        # main_layout.addWidget(separator3)
 
 
 
@@ -344,8 +346,8 @@ class RPWidget:
 
         # time
 
-        timewidget = TimeLabel(time)
-        main_layout.addWidget(timewidget)
+        # self.timewidget = TimeLabel(time)
+        # main_layout.addWidget(self.timewidget,stretch=1)
 
     def standard_label(self, label_name, lower_layout):
 
@@ -375,6 +377,7 @@ class RPWidget:
         for name in list(self.tp_values):
             self.tp_values[name].setText(str(self.tp[name].get_value()))
 
+
     def name_window(self):
         self.name_w = customWindows.NameWindow(self.tp['name'].set, self.update)
         self.name_w.show()
@@ -385,7 +388,7 @@ class RPWidget:
 
 
 class MiddleWidget:
-    def __init__(self, top:list, middle:list):
+    def __init__(self, top:list, middle:list,time):
         self.tp = top
         self.mdl= middle
         self.tp_values = {}
@@ -468,10 +471,20 @@ class MiddleWidget:
         frame2.setFrameShape(QFrame.Panel)
         frame2.setMaximumHeight(100)
 
+        frame3 = QFrame()
+        frame3.setFrameShape(QFrame.Panel)
+        frame3.setMaximumHeight(220)
+
+        self.timewidget = TimeLabel(time)
+        timeLayout = QHBoxLayout(frame3)
+        timeLayout.addWidget(self.timewidget)
+
         first_layout_outer.addWidget(QTHelper.CreateSeperator())
         first_layout_outer.addWidget(frame1)
         first_layout_outer.addWidget(frame2)
         first_layout_outer.addWidget(QTHelper.CreateSeperator())
+        first_layout_outer.addWidget(QTHelper.CreateSeperator())
+        first_layout_outer.addWidget(frame3)
 
         second_outer_layout = QVBoxLayout(frame1)
         top_label = create_top_label(self.mdl["death"].get_type())
@@ -515,6 +528,10 @@ class MiddleWidget:
 
         main_layout.addLayout(first_layout_outer)
 
+
+
+
+
     def get_widget(self):
         return self.main_widget
 
@@ -552,6 +569,8 @@ class MiddleWidget:
 
             self.wcheckboxes[i].setChecked(self.wcheckboxes[i].checked)
             self.fcheckboxes[i].setChecked(self.fcheckboxes[i].checked)
+        
+        self.timewidget.update()
 
     def death_failure(self,isChecked):
 
@@ -1113,13 +1132,215 @@ class TimeLabel(QFrame):
 
     def __init__(self,time: time.Time):
         super().__init__()
-        self.layout = QHBoxLayout(self)
+        layout = QHBoxLayout()
+        self.setLayout(layout)
+
+        scroll = QScrollArea()
+        scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        scroll.setWidgetResizable(True)
+        self.setMaximumHeight(200)
+        
+        # widget_scroll = QWidget() # Underlaying tab for all
+        
+
+
+        self.scroll_layout = QVBoxLayout(self)
+
+        upper_time_layout = QHBoxLayout()
+ 
+        self.lower_time_layout = QVBoxLayout()
+        widget_scroll = QWidget() # Underlaying tab for all
+        widget_scroll.setLayout(self.scroll_layout)
+        scroll.setWidget(widget_scroll)
+
+        layout.addWidget(scroll)
+
+
+        
         self.setFrameShape(QFrame.Panel)
         self.time = time
 
         label = QTHelper.CreateLabel("Time", style.LabelFont1)
+        upperHeight = 20
+        label.setMaximumHeight(upperHeight)
+        # label.setAlignment(QtCore.Qt.AlignCenter)
 
-        self.layout.addWidget(label)
+        self.scroll_layout.addLayout(upper_time_layout,stretch=1)
+        self.scroll_layout.addLayout(self.lower_time_layout,stretch=4)
+        upper_time_layout.addWidget(label,alignment=QtCore.Qt.AlignRight)
+
+        
+        slider = QSlider()
+        # slider.setGeometry(QtCore.QRect(190, 100, 160, 16))
+        slider.setOrientation(QtCore.Qt.Horizontal)
+        slider.setTickInterval(1)
+        slider.setMinimum(0)
+        slider.setMaximum(2)
+        slider.valueChanged.connect(self.setScale)
+        slider.setMaximumHeight(upperHeight)
+        self.scale = 0
+
+        
+
+        
+        
+        upper_time_layout.addWidget(slider,alignment=QtCore.Qt.AlignLeft)
+
+
+        self.timeWidgets = []
+        self.createTimeLabel()
+
+    def update(self):
+        self.createTimeLabel()
+
+    def createTimeLabel(self):
+        for label in self.timeWidgets:
+            label.setParent(None)
+
+        grandTimeWidget = QWidget()
+        grandTimeLayout = QHBoxLayout()
+        grandTimeWidget.setLayout(grandTimeLayout)
+
+
+
+        # Minus--------------------------
+        width = 10
+        height = 10
+        minusBig = QTHelper.CreateGenButton(
+            stylesheet=style.ArrowButton,
+            icon_url=imageURLS.BigLeftArrowURL,
+            icon_size=QtCore.QSize(width, height),
+            function_list=[partial(self.AlterTime,'big',-1)]
+        )
+        minusMid = QTHelper.CreateGenButton(
+            stylesheet=style.ArrowButton,
+            icon_url=imageURLS.MidLeftArrowURL,
+            icon_size=QtCore.QSize(width, height),
+            function_list=[partial(self.AlterTime,'mid',-1)]
+        )
+        minusSmall = QTHelper.CreateGenButton(
+            stylesheet=style.ArrowButton,
+            icon_url=imageURLS.SmallLeftArrowURL,
+            icon_size=QtCore.QSize(width, height),
+            function_list=[partial(self.AlterTime,'small',-1)]
+        )
+
+        # minusSmall =QTHelper.CreateGenButton(
+        #     stylesheet=style.ItemEditButton,
+        #     icon_url=imageURLS.leftArrowURL,
+        #     icon_size=QtCore.QSize(20, 20),
+        #     function_list=[]
+        # )
+        # Minus--------------------------
+
+        queryTime = {
+            0: ['week','day'],
+            1: ['hour','minute'],
+            2: ['minute','second'],
+        }
+        currentTime = self.time.getTime(queryTime[self.scale])
+
+        time_string = {
+            0: partial(grandTimeLabel),
+            1: partial(midTimeLabel),
+            2: partial(smallTimeLabel)
+        }[self.scale](currentTime)
+        
+        tLabel = QTHelper.CreateLabel(time_string, style.LabelFont1)
+
+        # plus-----------------------------------
+        plusBig = QTHelper.CreateGenButton(
+            stylesheet=style.ArrowButton,
+            icon_url=imageURLS.BigRightArrowURL,
+            icon_size=QtCore.QSize(width, height),
+            function_list=[partial(self.AlterTime,'big',1)]
+        )
+        plusMid = QTHelper.CreateGenButton(
+            stylesheet=style.ArrowButton,
+            icon_url=imageURLS.MidRightArrowURL,
+            icon_size=QtCore.QSize(width, height),
+            function_list=[partial(self.AlterTime,'mid',1)]
+        )
+        plusSmall = QTHelper.CreateGenButton(
+            stylesheet=style.ArrowButton,
+            icon_url=imageURLS.SmallRightArrowURL,
+            icon_size=QtCore.QSize(width, height),
+            function_list=[partial(self.AlterTime,'small',1)]
+        )
+        # plus-----------------------------------
+
+        grandTimeLayout.addWidget(minusBig)
+        grandTimeLayout.addWidget(minusMid)
+        grandTimeLayout.addWidget(minusSmall)
+        grandTimeLayout.addWidget(tLabel)
+        grandTimeLayout.addWidget(plusSmall)
+        grandTimeLayout.addWidget(plusMid)
+        grandTimeLayout.addWidget(plusBig)
+        grandTimeWidget.setMaximumHeight(44)
+        self.lower_time_layout.addWidget(grandTimeWidget)
+
+        self.timeWidgets += [grandTimeWidget]
+
+    def setScale(self,value):
+        self.scale = value
+        self.update()
+
+    def AlterTime(self,size,sign):
+
+        bigAlter = {
+            0: [1,"week"],
+            1: [1,"hour"],
+            2: [1,"minute"]
+        }
+
+        midAlter = {
+            0: [3, "day"],
+            1: [30, "minute"],
+            2: [30, "second"]
+        }
+
+        smallAlter = {
+            0: [1, "day"],
+            1: [1, "minute"],
+            2: [6, "second"]
+        }
+
+        alterArg = {
+            'big': bigAlter,
+            'mid': midAlter,
+            'small':smallAlter
+        }
+
+
+        self.time.add(sign * alterArg[size][self.scale][0], alterArg[size][self.scale][1]) 
+        self.update()
+
+
+
+def grandTimeLabel(time:list[int]):
+    return 'Week {} - Day {}'.format(time[0],time[1])
+
+def midTimeLabel(time: list[int]):
+    if time[0] >= 12:
+        if time[0] >= 13:
+            time[0] = time[0] - 12
+        suffix = ' PM'
+    else:
+        suffix = ' AM'
+
+    return str(time[0]).zfill(2) + ':' + str(time[1]).zfill(2) + suffix
+
+def smallTimeLabel(time: list[int]):
+
+    return str(time[0]).zfill(2) + ':' + str(time[1]).zfill(2) + ' s'
+
+
+        
+
+
+
+        
         
 
         

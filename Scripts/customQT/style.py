@@ -66,4 +66,9 @@ ConfirmEditButton = (
                 "QPushButton:pressed {color: white; background-color: " + secondary_confirm +"}"
                   )
 
+ArrowButton = (
+    "QPushButton {border-radius: 10px;background-color: #3e3e42}"
+    "QPushButton:hover {color: white; background-color: " + main_highlight + "}"
+    "QPushButton:pressed {color: white; background-color: " + secondary_higlight +"}")
+
 #  Encumberance Style__________________________________________________________________

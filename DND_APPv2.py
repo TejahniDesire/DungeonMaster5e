@@ -137,8 +137,8 @@ class DnDWindow(QMainWindow):
 
         self.tcharecter.alter_attribute('chr', 'starter_level', 8,easy=True)
 
-        
-
+        self.tcharecter.get_time().add(12,'hour')
+        self.tcharecter.get_time().add(22,'minute')
 
 
         dex_base = self.tcharecter.get_attribute('dex').get_total_base()
