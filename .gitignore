@@ -4,3 +4,6 @@ __pycache__/
 
 # ignore ALL files in ANY directory named temp
 temp
+
+Scripts/PATH.txt
+Scripts/newPath.txt
