@@ -142,8 +142,14 @@ class Stat:
     def get_base(self,source: str):
         return self.contrib_base[source].getValue()
     
+    def get_all_bases(self):
+        return self.contrib_base
+    
     def get_bonus(self,source):
         return self.contrib_bonus[source].getValue()
+    
+    def get_all_bonuses(self):
+        return self.contrib_bonus
     
 
     def __str__(self):
@@ -177,7 +183,32 @@ class Stat:
         string += '_____\n' + 'Total: ' + sign + str(self.total_bonus_val) + line
 
         return string
-        
+    
+class ConsumableStat(Stat):
+
+    def __init__(self, attribute):
+        super().__init__(attribute)
+        self.denom = self.total_base_val
+        self.numer = pyHelper.ReferenceNumber(self.denom.getValue(),True)
+
+    def get_total_base(self):
+
+        return "{}/{}".format(self.numer,self.denom)
+
+    def update(self):
+        super().update()
+        return 
+
+    def consume(self,amount):
+        if amount > self.numer.getValue():
+            raise ValueError("Subtracted more than contained")
+        self.numer.minus(amount)
+
+        self.update()
+
+    def replenish(self,amount):
+        self.numer.setValue(self.denom.getValue())
+
 
 class Skill:
 

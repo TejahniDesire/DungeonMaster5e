@@ -112,6 +112,14 @@ class ItemHolder:
 
     def __str__(self):
         return str(self.get_all_items())
+    
+    def getItemDictionary(self):
+
+        diction = {}
+        for item in self.get_all_items():
+            diction[item.get_name()] = {0: item.save_text()[1]}
+        return diction
+        
 
 
 class Inventory(ItemHolder):
@@ -190,6 +198,9 @@ class Inventory(ItemHolder):
             return [self.money["cp"].getValue(), self.money["sp"].getValue(), self.money["ep"].getValue(), self.money["gp"].getValue(), self.money["pp"].getValue()]
         else:
             return [self.money[denominations].getValue()]
+
+
+
 
 
 class AttackInventory(ItemHolder):

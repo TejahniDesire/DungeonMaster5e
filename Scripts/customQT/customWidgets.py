@@ -43,6 +43,40 @@ from ..objectF import pyHelper, itemsDnD
 from ..metaF import imageURLS
 
 
+
+class CleanLineEdit(QLineEdit):
+
+    def __init__(self, text:str, font, connectingFunction=None):
+        super().__init__()
+        self.setFont(font)
+
+        if type(text) == pyHelper.ReferenceString:
+            self.textString = text
+        else:
+            self.textString = pyHelper.ReferenceString(text)
+            
+        self.setText(self.textString.getString())
+        self.signal = FinishedSignal()
+
+        if (connectingFunction is not None): 
+            self.signal.finishedit.connect(connectingFunction)
+        self.signal.finishedit.connect(partial(self.updateString))
+
+    def updateString(self):
+        self.textString.setString(self.text())
+
+    def getReferenceString(self):
+        return self.textString
+
+    def focusOutEvent(self, e):
+        super(CleanLineEdit,self).focusOutEvent(e)
+        self.signal.finishedit.emit()
+        self.setReadOnly(True)
+
+    def mousePressEvent(self, e):
+        self.setReadOnly(False)
+        super(CleanLineEdit, self).mousePressEvent(e)
+
 def create_frame(top_label_str:str, bottom_label_str:str):
     frame = QFrame()
     frame.setFrameShape(QFrame.Panel)
@@ -93,17 +127,17 @@ class StatLayout:
         outer_layout.addLayout(main_layout)
 
         # Frame for attribute labels
-        frame1 = QFrame()
-        frame1.setFrameShape(QFrame.Panel)
+        self.frame1 = QTHelper.AttributeQFrame(attribute)
+        self.frame1.setFrameShape(QFrame.Panel)
         # Frame for skill labels
-        frame2 = QFrame()
-        frame2.setFrameShape(QFrame.Panel)
+        self.frame2 = QFrame()
+        self.frame2.setFrameShape(QFrame.Panel)
 
-        main_layout.addWidget(frame1)
-        main_layout.addWidget(frame2)
+        main_layout.addWidget(self.frame1)
+        main_layout.addWidget(self.frame2)
 
-        attribute_layout = QVBoxLayout(frame1)
-        skill_layout = QVBoxLayout(frame2)
+        attribute_layout = QVBoxLayout(self.frame1)
+        skill_layout = QVBoxLayout(self.frame2)
 
         # Attributes Labels___________
         self.att_labels = [
@@ -165,6 +199,8 @@ class StatLayout:
 
             self.skill_labels[i].setText(skill_string)
             i += 1
+        
+        self.frame1.update()
 
     def skill_checked(self, skill, button: QCheckBox):
         if button.isChecked():
@@ -696,7 +732,6 @@ class FinishedSignal(QObject):
     finishedit = pyqtSignal()
 
 
-
 class trait_box(QTextEdit):
 
     def __init__(self, text:str, font, connectingFunction):
@@ -1135,70 +1170,127 @@ class TimeLabel(QFrame):
         layout = QHBoxLayout()
         self.setLayout(layout)
 
-        scroll = QScrollArea()
-        scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
-        scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        scroll.setWidgetResizable(True)
-        self.setMaximumHeight(200)
+        self.scroll = QScrollArea()
+        self.scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.scroll.setWidgetResizable(True)
+
+        self.setMaximumHeight(400)
+
+        self.setMinimumHeight(200)
         
         # widget_scroll = QWidget() # Underlaying tab for all
         
 
 
         self.scroll_layout = QVBoxLayout(self)
+        # pretty_widget = QWidget()
+        # pretty_widget.setFrameShape(QFrame.Panel)
+        # pretty_layout = QHBoxLayout()
+        # pretty_widget.setLayout(pretty_layout)
+
 
         upper_time_layout = QHBoxLayout()
  
         self.lower_time_layout = QVBoxLayout()
-        widget_scroll = QWidget() # Underlaying tab for all
-        widget_scroll.setLayout(self.scroll_layout)
-        scroll.setWidget(widget_scroll)
 
-        layout.addWidget(scroll)
+
+
+        widget_scroll = QFrame() # Underlaying tab for all
+        widget_scroll.setFrameShape(QFrame.Panel)
+        widget_scroll.setLayout(self.scroll_layout)
+        self.scroll.setWidget(widget_scroll)
+
+        layout.addWidget(self.scroll)
 
 
         
         self.setFrameShape(QFrame.Panel)
         self.time = time
 
-        label = QTHelper.CreateLabel("Time", style.LabelFont1)
+        label = QTHelper.CreateLabel("Time", style.LabelFont2)
         upperHeight = 20
         label.setMaximumHeight(upperHeight)
         # label.setAlignment(QtCore.Qt.AlignCenter)
 
         self.scroll_layout.addLayout(upper_time_layout,stretch=1)
         self.scroll_layout.addLayout(self.lower_time_layout,stretch=4)
-        upper_time_layout.addWidget(label,alignment=QtCore.Qt.AlignRight)
+        upper_time_layout.addWidget(label,alignment=QtCore.Qt.AlignLeft,stretch=1)
 
-        
-        slider = QSlider()
-        # slider.setGeometry(QtCore.QRect(190, 100, 160, 16))
-        slider.setOrientation(QtCore.Qt.Horizontal)
-        slider.setTickInterval(1)
-        slider.setMinimum(0)
-        slider.setMaximum(2)
-        slider.valueChanged.connect(self.setScale)
-        slider.setMaximumHeight(upperHeight)
+        size = 20
+        self.buttons = [
+            QTHelper.CreateGenButton(
+                stylesheet=style.CheckablePushButton,
+                icon_url=imageURLS.BigConcentricCircleURL,
+                icon_size=QtCore.QSize(size, size),
+                function_list=[partial(self.setScale,0)]
+            ),
+            QTHelper.CreateGenButton(
+                stylesheet=style.CheckablePushButton,
+                icon_url=imageURLS.MidConcentricCircleURL,
+                icon_size=QtCore.QSize(size, size),
+                function_list=[partial(self.setScale,1)]
+            ),
+            QTHelper.CreateGenButton(
+                stylesheet=style.CheckablePushButton,
+                icon_url=imageURLS.SmallConcentricCircleURL,
+                icon_size=QtCore.QSize(size, size),
+                function_list=[partial(self.setScale,2)]
+            ),
+            QTHelper.CreateGenButton(
+                stylesheet=style.ItemEditButton,
+                icon_url=imageURLS.AddUrl, icon_size=QtCore.QSize(20, 20),
+                function=partial(self.createSplinter)
+            )
+        ]
         self.scale = 0
+        i = 0
+        for button in self.buttons:
+            if i != 3:
+                button.setCheckable(True)
+            upper_time_layout.addWidget(button,alignment=QtCore.Qt.AlignLeft,stretch=1)
 
+        
+
+
+        # slider = QSlider()
+        # # slider.setGeometry(QtCore.QRect(190, 100, 160, 16))
+        # slider.setOrientation(QtCore.Qt.Horizontal)
+        # slider.setTickInterval(1)
+        # slider.setMinimum(0)
+        # slider.setMaximum(2)
+        # slider.valueChanged.connect(self.setScale)
+        # slider.setMaximumHeight(upperHeight)
+        
         
 
         
         
-        upper_time_layout.addWidget(slider,alignment=QtCore.Qt.AlignLeft)
-
+        # upper_time_layout.addWidget(slider,alignment=QtCore.Qt.AlignLeft)
+        self.splinters = {}
+        self.splinterNames = {}
 
         self.timeWidgets = []
         self.createTimeLabel()
 
     def update(self):
         self.createTimeLabel()
+        i = 1
+        for key in self.splinters.keys():
+            self.createSplinterLabel(self.splinters[key],i)
+            print(self.splinterNames[key])
+            i +=1
+        self.scroll.verticalScrollBar().setValue(0)
+
+            
 
     def createTimeLabel(self):
         for label in self.timeWidgets:
             label.setParent(None)
+        self.timeWidgets = []
 
-        grandTimeWidget = QWidget()
+        grandTimeWidget = QFrame()
+        grandTimeWidget.setFrameShape(QFrame.Panel)
         grandTimeLayout = QHBoxLayout()
         grandTimeWidget.setLayout(grandTimeLayout)
 
@@ -1246,8 +1338,13 @@ class TimeLabel(QFrame):
             1: partial(midTimeLabel),
             2: partial(smallTimeLabel)
         }[self.scale](currentTime)
+
+        if self.time.getSign() == -1:
+            precurser = '(' + self.time.getSignString() + ') '
+        else:
+            precurser = ''
         
-        tLabel = QTHelper.CreateLabel(time_string, style.LabelFont1)
+        tLabel = QTHelper.CreateLabel(precurser + time_string, style.LabelFont1)
 
         # plus-----------------------------------
         plusBig = QTHelper.CreateGenButton(
@@ -1278,12 +1375,114 @@ class TimeLabel(QFrame):
         grandTimeLayout.addWidget(plusMid)
         grandTimeLayout.addWidget(plusBig)
         grandTimeWidget.setMaximumHeight(44)
-        self.lower_time_layout.addWidget(grandTimeWidget)
+        self.lower_time_layout.addWidget(grandTimeWidget,alignment=QtCore.Qt.AlignCenter)
 
         self.timeWidgets += [grandTimeWidget]
 
+    def createSplinter(self):
+        key = self.time.getTime(unit='second',absolute=True)
+        if key in self.splinters.keys():
+            self.update()
+            return  
+        key, splinter = self.time.splinterTime(protect=True)
+        self.splinters[key] = splinter
+        self.splinterNames[key] = pyHelper.ReferenceString('(Splint: ' + str(len(self.splinterNames.keys())) + ') ')
+        self.update()
+
+    def createSplinterLabel(self,splinter,order):
+        timeWidget = QFrame()
+        timeWidget.setFrameShape(QFrame.Panel)
+        timeLayout = QHBoxLayout()
+        timeWidget.setLayout(timeLayout)
+
+        splint_key = splinter.getInit()
+        splint_name = self.splinterNames[splint_key]
+        # if splint_name is None:
+        #     splint_name = pyHelper.ReferenceString('(Splint: ' + str(order) + ') ')
+        #     print("NONENONONEONE")
+
+        queryTime = {
+            0: ['week','day'],
+            1: ['hour','minute'],
+            2: ['minute','second'],
+        }
+        currentTime = splinter.getTime(queryTime[self.scale])
+
+        time_string = {
+            0: partial(grandTimeLabel),
+            1: partial(midTimeLabel),
+            2: partial(smallTimeLabel)
+        }[self.scale](currentTime)
+
+        if splinter.getSign() == -1:
+            precurser = '(' + splinter.getSignString() + ') '
+        else:
+            precurser = ''
+
+        # prepre = '(Splint: ' + str(order) + ') '
+        
+        tLabel = QTHelper.CreateLabel(precurser + time_string, style.LabelFont1)
+
+        delete = QTHelper.CreateGenButton(
+            stylesheet=style.TimeMinusButton,
+            icon_url=imageURLS.MinusUrl, 
+            icon_size=QtCore.QSize(20, 20),
+            function_list=[partial(self.deleteSplinter,splinter.getInit())]
+        )
+
+        # Name the Splint:
+        font = QFont('Times', 13, QFont.Bold)
+        font.setWeight(12)
+        splinterLabel = CleanLineEdit(text=splint_name, font=font)
+        splinterLabel.setMaxLength(15)
+
+
+        #__________-
+
+        
+
+        # font.setItalic(True)
+        timeLayout.addWidget(splinterLabel,stretch=1)
+        timeLayout.addWidget(tLabel,stretch=1)
+        timeLayout.addWidget(delete,stretch=1)
+
+        timeWidget.setMaximumHeight(44)
+        self.lower_time_layout.addWidget(timeWidget,alignment=QtCore.Qt.AlignCenter)
+
+        self.timeWidgets += [timeWidget]
+
+    def updateSplinterName(self, splinter_key, newName:str):
+        self.splinterNames[splinter_key] = newName
+        
+    
+    def deleteSplinter(self,init):
+        self.splinters[init]
+        i = 1
+        for key in self.splinters.keys():
+            if init == self.splinters[key].getInit():
+                self.timeWidgets[i].setParent(None)
+                del self.timeWidgets[i]
+                del_index = key
+                
+            i += 1
+        del self.splinters[del_index]
+        self.time.removeSplinter(init)
+        self.update()
+
+
     def setScale(self,value):
         self.scale = value
+
+        i = 0
+        for button in self.buttons:
+            if i == self.scale:
+                button.setChecked(True)
+            
+            else:
+                button.setChecked(False)
+            i += 1
+
+
         self.update()
 
     def AlterTime(self,size,sign):
@@ -1296,7 +1495,7 @@ class TimeLabel(QFrame):
 
         midAlter = {
             0: [3, "day"],
-            1: [30, "minute"],
+            1: [15, "minute"],
             2: [30, "second"]
         }
 
@@ -1316,6 +1515,26 @@ class TimeLabel(QFrame):
         self.time.add(sign * alterArg[size][self.scale][0], alterArg[size][self.scale][1]) 
         self.update()
 
+
+class SplinterTimeLabel(QFrame):
+
+    def __init__(self,order):
+        super().__init__()
+        layout = QHBoxLayout()
+        self.setLayout(layout)
+
+        font = QFont('Times', 8, QFont.StyleItalic)
+        font.setWeight(12)
+        font.setItalic(True)
+        
+        self.label = CleanLineEdit('(Splint: ' + str(order) + ') ', font, None)
+        layout.addWidget(self.label)
+
+
+        
+
+    def alterName(self,newName):
+        self.label.setText(newName)
 
 
 def grandTimeLabel(time:list[int]):

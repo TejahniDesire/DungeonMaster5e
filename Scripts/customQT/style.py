@@ -20,6 +20,8 @@ secondary_higlight = "crimson"
 
 main_confirm = "green"
 secondary_confirm = "darkgreen"
+
+pushed = "dimgray"
 # StyleSheets_______________________________________________________________________________________
 TabButtonSheet = "QPushButton {color: white}"
 TabButtonSheet1 = ("QPushButton {background-color: #3e3e42;color: white;  border-radius: 15px}"
@@ -71,4 +73,37 @@ ArrowButton = (
     "QPushButton:hover {color: white; background-color: " + main_highlight + "}"
     "QPushButton:pressed {color: white; background-color: " + secondary_higlight +"}")
 
-#  Encumberance Style__________________________________________________________________
+CheckablePushButton = (
+                   "QPushButton {border-radius: 10px;background-color: #3e3e42}"
+                   "QPushButton:hover {color: white; background-color: " + main_highlight + "}"
+                   "QPushButton:checked  {color: white; background-color: " + pushed + "}"
+                   )
+
+
+TimeMinusButton =     (
+                "QPushButton {border-radius: 12px;background-color: gray}"
+                "QPushButton:hover {color: white; background-color: " + main_highlight + "}"
+                "QPushButton:pressed {color: white; background-color: " + secondary_higlight +"}"
+                  )
+
+highlight_thickness = '5'
+highlighted_Qframe = (
+                "QFrame:hover {border-color: " + main_highlight + "; border-width : "+highlight_thickness+"px "+highlight_thickness+"px "+highlight_thickness+"px "+highlight_thickness+"px}"
+                
+)
+Pressed_Qframe = (
+                "QFrame {background-color: "+ pushed +"}"
+                "QFrame:hover {border-color: " + main_highlight + "; border-width : "+highlight_thickness+"px "+highlight_thickness+"px "+highlight_thickness+"px "+highlight_thickness+"px}"
+)
+
+GreyQWidget = ("QWidget {background-color: #3e3e42;color: white;  border-radius: 3"
+             "px}")
+
+
+# ("QFrame {"
+#                                 "border-width: 1;"
+#                                 "border-radius: 3;"
+#                                 "border-style: solid;"
+#                                 "border-color: " + main_highlight
+#         )
+# #  Encumberance Style__________________________________________________________________

@@ -11,17 +11,33 @@ import numpy as np
 
 import re
 
-def sign_string(bonus):
+def sign_string(bonus,show_positive =True,show_negative = True):
     if np.sign(bonus) == -1:
-        sign = ''
+        if show_negative:
+            sign = '-'
+        else:
+            sign = ''
     else:
-        sign = '+'
+        if show_positive:
+            sign = '+'
+        else:
+            sign = ''
 
     return sign
+
+def string_to_list(string:str, delineator:str = ','):
+    return list(map(str, string.split(delineator)))
+
+def readTuple(tupleStr,delineator=',',pos1_type=int,pos2_type=int):
+    pos1 = ''.join(filter(str.isalnum, tupleStr.split(delineator)[0]))
+    pos2 = ''.join(filter(str.isalnum, tupleStr.split(delineator)[1]))
+    return (pos1_type(pos1),pos2_type(pos2))
 
 def name_to_key(name:str):
     return name.casefold().replace(" ", "_")
 
+def key_to_name(key:str):
+    return key.replace("_"," ").title()
 
 def regexSearch(query:str, searchList):
     query = name_to_key(query)
@@ -132,3 +148,16 @@ class ReferenceNumber:
 
 
     
+class ReferenceString:
+
+    def __init__(self,string):
+        self.string = str(string)
+
+    def setString(self,string):
+        self.string = str(string)
+
+    def getString(self):
+        return self.string
+    
+    def __str__(self):
+        return self.string

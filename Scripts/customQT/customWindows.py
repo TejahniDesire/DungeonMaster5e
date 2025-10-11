@@ -106,6 +106,112 @@ class AlignmentWindow(QWidget):
         self.update_function()
         self.close()
 
+class AttributeWindow(QWidget):
+    def __init__(self, attribute:charecterAttributes.Stat,close_function):
+        super().__init__()
+
+        self.attribute = attribute
+        mainLayout = QVBoxLayout()
+        self.setWindowTitle(attribute.type + " Ability Score")
+        
+        text_str = str(self.attribute)
+        self.setLayout(mainLayout)
+        mainLayout.addWidget(self.getTextLayout())
+        self.setMinimumWidth(300)
+        self.setMaximumWidth(400)
+        self.close_function = close_function
+
+    def closeEvent(self,event):
+        super().closeEvent(event)
+        self.close_function()
+
+    def getTextLayout(self):
+        mainWidget = QWidget()
+        layout = QGridLayout()
+
+        mainWidget.setLayout(layout)
+        mainWidget.setStyleSheet(style.GreyQWidget)
+        layout.addWidget(QTHelper.CreateLabel("Score",font=style.LabelFont1,style_sheet=style.GreyLabel),0,0)
+        layout.addWidget(QTHelper.CreateLabel("Bonus",font=style.LabelFont1,style_sheet=style.GreyLabel),0,1)
+
+        pure_frame = QFrame()
+        pure_frame.setFrameShape(QFrame.Panel)
+        pure_layout = QGridLayout()
+        pure_frame.setLayout(pure_layout)
+        base_names = list(self.attribute.get_all_bases())
+        base_values = np.array(list(self.attribute.get_all_bases().values()))
+        for i in range(len(base_names)):
+
+
+            name = pyHelper.key_to_name(base_names[i])
+            value = str(base_values[i])
+
+            name_label = QTHelper.CreateLabel(name,font=style.LabelFont2p5,style_sheet=style.DarkGreyLabel)
+            value_label = QTHelper.CreateLabel(value,font=style.LabelFont2p5,style_sheet=style.DarkGreyLabel)
+
+            name_label.setMaximumWidth(100)
+            name_label.setMaximumHeight(15)
+            value_label.setMaximumWidth(30)
+            value_label.setMaximumHeight(15)
+
+            pure_layout.addWidget(name_label,i,0)
+            pure_layout.addWidget(value_label,i,1)
+
+
+        name_label = QTHelper.CreateLabel("Total",font=style.LabelFont2p5,style_sheet=style.DarkGreyLabel)
+        value_label = QTHelper.CreateLabel(str(self.attribute.get_total_base()),font=style.LabelFont2p5,style_sheet=style.DarkGreyLabel)
+
+        name_label.setMaximumWidth(100)
+        name_label.setMaximumHeight(15)
+        value_label.setMaximumWidth(30)
+        value_label.setMaximumHeight(15)
+
+        pure_layout.addWidget(name_label,len(base_names)+1,0)
+        pure_layout.addWidget(value_label,len(base_names)+1,1)
+
+
+        layout.addWidget(pure_frame,1,0)
+
+        bonus_frame =QFrame()
+        bonus_frame.setFrameShape(QFrame.Panel)
+        bonus_layout = QGridLayout()
+        bonus_frame.setLayout(bonus_layout)
+        bonus_names = list(self.attribute.get_all_bonuses())
+        bonus_values = np.array(list(self.attribute.get_all_bonuses().values()))
+        for i in range(len(bonus_names)):
+
+
+            name = pyHelper.key_to_name(bonus_names[i])
+            value = pyHelper.sign_string(bonus_values[i].getValue()) + str(bonus_values[i])
+
+
+            name_label = QTHelper.CreateLabel(name,font=style.LabelFont2p5,style_sheet=style.DarkGreyLabel)
+            value_label = QTHelper.CreateLabel(value,font=style.LabelFont2p5,style_sheet=style.DarkGreyLabel)
+
+            name_label.setMaximumWidth(100)
+            name_label.setMaximumHeight(15)
+            value_label.setMaximumWidth(30)
+            value_label.setMaximumHeight(15)
+
+            bonus_layout.addWidget(name_label,i,0)
+            bonus_layout.addWidget(value_label,i,1)
+            
+
+        name_label = QTHelper.CreateLabel("Total",font=style.LabelFont2p5,style_sheet=style.DarkGreyLabel)
+        value_label = QTHelper.CreateLabel(pyHelper.sign_string(self.attribute.get_total_bonus()) + str(self.attribute.get_total_bonus()),font=style.LabelFont2p5,style_sheet=style.DarkGreyLabel)
+
+        name_label.setMaximumWidth(100)
+        name_label.setMaximumHeight(15)
+        value_label.setMaximumWidth(30)
+        value_label.setMaximumHeight(15)
+
+        bonus_layout.addWidget(name_label,len(bonus_names)+1,0)
+        bonus_layout.addWidget(value_label,len(bonus_names)+1,1)
+
+        layout.addWidget(bonus_frame,1,1)
+
+        return mainWidget
+
 
 class AddWindow(QWidget):
     '''

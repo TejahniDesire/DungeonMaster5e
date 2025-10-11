@@ -27,7 +27,7 @@ from PyQt5.sip import delete
 
 from ..objectF import pyHelper,itemsDnD,objectsDnd
 from ..charecterF import (charecter, charecterMechanics, charecterAttributes, inventory)
-from . import style
+from . import style, customWindows
 from ..metaF import imageURLS
 # import objectsDnD, style, charManagers, ruleTools, imageURLS, pyObjects
 
@@ -339,5 +339,38 @@ def MakeColorWidget(color, opacity):
     widget.setMinimumHeight(10)
     return widget
 
-#
-#
+
+class AttributeQFrame(QFrame):
+
+    def __init__(self,attribute):
+        super().__init__()  
+
+        self.attribute = attribute
+
+        self.setStyleSheet(style.highlighted_Qframe)
+        self.attributeWindow = None
+
+    
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+
+        if self.attributeWindow is not None:
+            self.attributeWindow.close()
+
+        self.attributeWindow = customWindows.AttributeWindow(attribute=self.attribute,close_function=partial(self.setStyleSheet,style.highlighted_Qframe))
+        self.attributeWindow.show()
+        
+        self.setStyleSheet(style.Pressed_Qframe)
+
+
+
+        # self.setStyleSheet(style.highlighted_Qframe)
+        
+                                
+        print(event)
+
+    
+    def update(self):
+        if self.attributeWindow is not None:
+            self.attributeWindow.close()
+

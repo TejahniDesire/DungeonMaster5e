@@ -129,7 +129,7 @@ class CharacterSheet:
         self.mid_stat_top = {
             'ac': charecterAttributes.Stat('Armor Class'),
             'init': charecterAttributes.Skill('Initiative', self.AbS['dex'], self.AbS['prof']),
-            'speed': charecterAttributes.Stat('Speed'),
+            'speed': charecterAttributes.ConsumableStat('Speed'),
             'mhp': charecterAttributes.Stat('Hit Point Maximum'),
             'chp': charecterAttributes.Stat('Current Hit Points')
         }
@@ -164,6 +164,17 @@ class CharacterSheet:
         self.inventory.update()
         self.attack_inventory.update()
 
+    def save(self,path:str):
+        if path[-1] != '/':
+            path += '/'
+
+        # Inventory Protocal
+        inventory_dir = path + 'inventories/main_inventory.txt'
+        
+
+        
+
+        
         
 
     def get_all_attributes(self):
@@ -351,3 +362,12 @@ class CharacterSheet:
 
     def get_time(self):
         return self.time
+    
+
+
+    # ACTIONS
+    def walk(self,amount:int):
+        speed = self.get_specific_mid_top('speed')
+
+
+    

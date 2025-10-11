@@ -7,15 +7,24 @@ from . import pyHelper, objectsDnd
 # from Scripts.objectF import objectsDnD
 
 line = "________________________________________________________________________\n"
-
-
+Delineator = '-*^*-'
+Weapon_Property_Delineator = ';]},'
 class Item:
 
     def __init__(self, name: str, weight: float, cost: tuple = (0, "gp"), category: str = "Misc",bonus: int = 0):
+        """_summary_
+
+        Args:
+            name (str): Name of Item
+            weight (float): Pounds
+            cost (tuple, optional): (Amount, delimination).
+            category (str, optional): Category of item (Misc, Weapon)
+            bonus (int, optional): _description_. Defaults to 0.
+        """
         self.name = name
         self.key_name = pyHelper.name_to_key(self.name)
         self.cost = cost
-        self.weight = weight
+        self.weight = float(weight)
         self.amount = 1
         self.type = category
         self.is_equipped = False
@@ -170,12 +179,24 @@ class Item:
     def set_bonus(self,bonus):
         self.weapon_stats['bonus'] =  bonus
 
-
     def copy(self):
         return Item(self.get_name(), self.get_weight(), self.get_cost(), self.get_type(), self.get_bonus())
+    
+    # __________________________________________________________________
+
+    def save_text(self):
+        name = self.name
+        string = ''
+        
+        for prop in [self.cost,self.weight,self.amount,self.is_equipped,self.type]:
+            string += str(prop) + Delineator
+
+        return name, string
+
 
 scalings = ['str', 'dex', 'con', 'int', 'wis', 'chr']
 
+# Specific stats: damage_dice, damage_type,  properties, weapon_class, scaling
 class Weapon(Item):
     def __init__(self, name: str, weight: float, cost: tuple, damage_dice: tuple,
                  damage_type: str, properties: list[str], weapon_class: str, scaling: str = "str", scaling_fixed:bool=True,bonus:int = 0):
@@ -187,7 +208,7 @@ class Weapon(Item):
             "damage_type": damage_type,
             "properties": properties,
             "weapon_class": weapon_class,
-            "bonus": bonus
+            "bonus": bonus # TODO: make this a reference number
         }
         self.scaling = scaling
         self.scaling_fixed = scaling_fixed
@@ -223,4 +244,63 @@ class Weapon(Item):
     def copy(self):
         return Weapon(self.get_name(), self.get_weight(), self.get_cost(), (self.get_damage_dice().get_amount(),self.get_damage_dice().get_type()),
                  self.get_damage_type(), self.get_properties(), self.get_weapon_class, self.getScaling(), self.isScalingFixed(),self.get_bonus())
+    
+    def save_text(self):
+        name, string = super().save_text()
+        string += str((self.weapon_stats['damage_dice'].get_amount(), self.weapon_stats['damage_dice'].get_type())) + Delineator
+        string += str(self.weapon_stats['damage_type']) + Delineator
+        
+        for prop in self.weapon_stats['properties']:
+            string += prop + Weapon_Property_Delineator
+        string = string[:-4]
+        string += Delineator
 
+        string +=str(self.weapon_stats["weapon_class"]) + Delineator
+        string +=str(self.weapon_stats["bonus"]) + Delineator
+        string +=str(self.scaling)+ Delineator
+        string +=str(self.scaling_fixed)+ Delineator
+        return self.name, string
+
+
+def generalItemTextParser(item_string):
+    props = item_string.split('-*^*-')
+    
+    cost = pyHelper.readTuple(props[0],pos1_type=int,pos2_type=str)
+    weight = float(props[1])
+    amount= int(props[2])
+    
+    is_equipped = bool(props[3])
+    category = props[4]
+
+    return cost, weight, amount, is_equipped, category, props
+
+def loadItem(name,item_string):
+    cost, weight, amount, is_equipped, category, _ = generalItemTextParser(item_string)
+    item = Item(name=name,weight=weight,cost=cost,category=category)
+    item.update_amount(amount)
+    {True:item.equip, False:item.unequiped}[is_equipped]
+    return item
+
+def loadWeapon(name, item_string):
+    cost, weight, amount, is_equipped, category, props = generalItemTextParser(item_string)
+    damage_dice = pyHelper.readTuple(props[5],pos1_type=int,pos2_type=int)
+    print("DDD",damage_dice)
+    damage_type = props[6]
+    properties =[]
+    for weapon_prop in props[7].split(Weapon_Property_Delineator):
+        properties += [weapon_prop]
+
+    weapon_class = props[8]
+    bonus = int(props[9])
+    scaling = props[10]
+    scaling_fixed = bool(props[11])
+    return Weapon(name=name,weight=weight,cost=cost,damage_dice=damage_dice, damage_type=damage_type, properties=properties,
+                  weapon_class=weapon_class,scaling=scaling,scaling_fixed=scaling_fixed,bonus=bonus)
+
+def loadGenItem(name, item_string):
+
+    item_type = item_string.split('-*^*-')[4]
+    if item_type == "Weapon":
+        return loadWeapon(name,item_string)
+    else:
+        return loadItem(name,item_string)

@@ -72,7 +72,7 @@ class MainTab(QWidget):
         # Mid top stats (AC, initiative, speed, max hit points, current hit points)
         # Mid mid stats (Hit dice, Death Saving throws)
         self.mid_widget = customWidgets.MiddleWidget(tcharecter.get_all_mid_top(), tcharecter.get_all_mid_mid(),tcharecter.get_time()) 
-        mid_layout.addWidget(self.mid_widget.get_widget())
+        mid_layout.addWidget(self.mid_widget.get_widget(),stretch=1)
 
         # test_button = QPushButton('test')
         # test_button.clicked.connect(partial(self.test))
@@ -83,7 +83,7 @@ class MainTab(QWidget):
             tcharecter.get_attack_inventory(),
             tcharecter.get_all_attributes()
         )
-        mid_layout.addWidget(self.weapon_widget.getWidget(), alignment=QtCore.Qt.AlignTop)
+        mid_layout.addWidget(self.weapon_widget.getWidget(), alignment=QtCore.Qt.AlignTop,stretch=1)
 
         # Right Layout_____________________________________
         right_layout = QVBoxLayout()
