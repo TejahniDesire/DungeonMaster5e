@@ -143,6 +143,8 @@ class DnDWindow(QMainWindow):
 
         dex_base = self.tcharecter.get_attribute('dex').get_total_base()
         self.tcharecter.alter_attribute('dex', 'starter_level',  dex_base + 3,easy=True)
+        self.tcharecter.alter_attribute('dex', 'cool_factor',  20,easy=True)
+        self.tcharecter.alter_attribute('dex', 'rage',  12,easy=True)
 
         # self.tcharecter.get_specific_skills('sleight').give_expertise()
         # self.tcharecter.get_specific_top('name').set('Lucas Cyr')

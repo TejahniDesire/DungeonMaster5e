@@ -3,7 +3,14 @@ import re
 import numpy as np 
 import gc
 from . import pyHelper
+from ..metaF import directoryCrawler 
 
+def saveLayeredDiction(dict,string=''):
+
+    for key in dict.keys():
+        saveLayeredDiction(dict[key])
+    
+stopLine = '#$#*@@!!!'
 
 class DataBasePage:
 
@@ -12,7 +19,7 @@ class DataBasePage:
 
     def readPage(self,dir):
         txt = open(dir)
-        HeadViewer = ViewerDict()
+        HeadViewer = ViewerDict(file_dir=dir)
         lines = txt.readlines()
         last = lines[-1]
         l=0
@@ -20,7 +27,7 @@ class DataBasePage:
         last_order = None
         keylist= []
         repeat_orders = {}
-        while '#$#*@@!!!' not in current_line:
+        while stopLine not in current_line:
             
             skip_conditions = [
                 current_line[0] == '#',
@@ -127,11 +134,43 @@ class DataBasePage:
 
         combinedPage.allItemsOfDepth() 
         return combinedPage
+    
+    def AddPage(self,str_diction,title, file_dir,replace_old=False):
+        HeadViewer = convertStrDict(str_diction,title=title,file_dir=file_dir)
+        page_key = pyHelper.name_to_key(HeadViewer.getValue())
+
+        if (page_key in self.pages.keys()) and (not replace_old):
+            raise ValueError("Page with existing title detected")
+        self.pages[page_key] = HeadViewer
+        HeadViewer.allItemsOfDepth()
+        print("Page '{}' successfully Created.".format(HeadViewer.getValue()))
+
+
+    def writePage(self,title):
+        page = self.getPage(title=title)
         
+        string = page.recursiveCodePrint()
+        directoryCrawler.createTxtFile(page.getFileDir(),string,True)
         
+def convertStrDict(str_diction,title=None,higherdict=None,order=1,file_dir=None,keylist=None):
+    if higherdict is None:
+        if title is None: raise ValueError("Title must be given at start of recersion")
+        higherdict = ViewerDict(value=title,file_dir=file_dir)
+        keylist = []
+    i = 0
+    if type(str_diction) is dict:
+        for current_value in str_diction.keys():
+            current_dict = str_diction[current_value]
+            new_key = '&' * order
+            if i > 0: new_key += str(i+1)
+            higherdict.recursiveSet(keylist + [new_key],ViewerDict(value=current_value,key=new_key))
+            convertStrDict(current_dict,higherdict=higherdict,order=order + 1,file_dir=file_dir,keylist=keylist + [new_key])
+            i += 1
+    return higherdict
+
 class ViewerDict:
 
-    def __init__(self,value=None,key=None,header=None,parent=None):
+    def __init__(self,value=None,key=None,header=None,parent=None,file_dir=None):
         if key is None:
             self.isHead = True
         else:
@@ -146,8 +185,33 @@ class ViewerDict:
         self.clean_depth_dict = {} # set by allItemsOfDepth
         self.viewers_of_depth = {}
 
+        if file_dir is not None:
+            file_dir= file_dir.strip()
+            text_dir = file_dir.split('/')[-1]
+            folder_dir = file_dir[:len(file_dir)-len(text_dir)]
+        else:
+            text_dir = None
+            folder_dir = None
+        self.dirs = {
+            'text_dir': text_dir,
+            'folder_dir': folder_dir
+        }
+
     def keys(self):
         return self.dictionary.keys()
+    
+    def getFolderDir(self):
+        if self.dirs['folder_dir'] is None:
+            raise KeyError("This ViewerDict has no folder directory. Maybe try asking its parent?")
+        return self.dirs['folder_dir']
+    
+    def getTextDir(self):
+        if self.dirs['folder_dir'] is None:
+            raise KeyError("This ViewerDict has no text file directory. Maybe try asking its parent?")
+        return self.dirs['text_dir']
+    
+    def getFileDir(self):
+        return self.getFolderDir() + self.getTextDir()
 
     def getValue(self):
         return self.value
@@ -169,6 +233,22 @@ class ViewerDict:
             return np.flip(keylist),np.flip(parentList)
         else:
             return self.parent.getAllParents(keylist=keylist,parentList=parentList)
+        
+    def setFolderDir(self,folder_dir):
+        self.dirs['folder_dir'] = folder_dir
+
+    def setTextDir(self,text_dir):
+        self.dirs['text_dir'] = text_dir
+
+    def setFileDir(self,file_dir):
+        file_dir= file_dir.strip()
+        text_dir = file_dir.split('/')[-1]
+        folder_dir = file_dir[:len(file_dir)-len(text_dir)]
+
+        self.dirs = {
+            'text_dir': text_dir,
+            'folder_dir': folder_dir
+        }
     
     def setValue(self,value):
         self.value = value
@@ -182,8 +262,6 @@ class ViewerDict:
     def setHeader(self,header):
         self.header = header
 
-
-
     # ALL RECURSION {----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     def recursiveCopy(self,pastViewer=None):
@@ -194,8 +272,6 @@ class ViewerDict:
             pastViewer.setValue(self.getValue())
             pastViewer.setHeader(self.header)
             pastViewer.setParent(self.parent)
-
-
         for key in self.keys():
             pastViewer[key] = ViewerDict()
             self[key].recursiveCopy(pastViewer = pastViewer[key])
@@ -211,8 +287,8 @@ class ViewerDict:
             gc.collect()
             return
         else:
+            
             self[key].recursiveSet(keyList,value)
-
 
     def recursiveStringPrint(self,depth=0,string=''):
         pre_text_type = ['number','letter','LETTER'][depth % 3]
@@ -233,8 +309,6 @@ class ViewerDict:
             text = str(self.value)
             notebook_order = noteBookOrder(number,type=pre_text_type) + ') '
             text = text.replace( '\n', '\n' + depth * tabSize * ' ' + len(notebook_order) * ' ' )
-
-
 
             current_string = string + depth * tabSize * ' ' + notebook_order + text
 
@@ -276,6 +350,19 @@ class ViewerDict:
                 values = self.depth_dict[desired_depth]
             
             return values, self.viewers_of_depth[desired_depth]
+        
+    def recursiveCodePrint(self,string=''):
+        if self.key is None:
+            string += self.getValue() + ';\n'
+        else:
+            string += pyHelper.keep_only_char(self.key,'&') + '<x>' + self.getValue() + ';\n'
+        for key in self.keys():
+            string = self[key].recursiveCodePrint(string = string)
+
+        if self.key is None:
+            string += stopLine
+        return string
+
 
     # } ALL RECURSION END ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -338,6 +425,7 @@ class ViewerDict:
         # self.dictionary[key] = ViewerDict(value=value,key=key,header=header)
         if type(value) is ViewerDict:
             self.dictionary[key] = value
+            self.dictionary[key].setKey(key)
             self.dictionary[key].setParent(self)
         else:
             self.dictionary[key] = ViewerDict(value=value,key=key,parent=self)
@@ -360,53 +448,53 @@ class ViewerDict:
         return str(self)
         
 
-class ViewerList:
+# class ViewerList:
 
-    def __init__(self,viewer_list=None):
-        self.ValueDict = {}
-        if viewer_list is None:
-            self.list = []
-        else: 
-            self.list = viewer_list
-            self.updateDict()
+#     def __init__(self,viewer_list=None):
+#         self.ValueDict = {}
+#         if viewer_list is None:
+#             self.list = []
+#         else: 
+#             self.list = viewer_list
+#             self.updateDict()
 
-        # self.HeaderDict = {}
+#         # self.HeaderDict = {}
 
 
-    def updateDict(self):
-        self.ValueDict = {}
-        # self.HeaderDict = {}
+#     def updateDict(self):
+#         self.ValueDict = {}
+#         # self.HeaderDict = {}
 
-        for viewer in self.list:
-            # header = viewer.getHeader()
-            value = str(viewer.getValue())
-            self.ValueDict[suffixDepth(self.ValueDict.keys(),value)] = viewer
+#         for viewer in self.list:
+#             # header = viewer.getHeader()
+#             value = str(viewer.getValue())
+#             self.ValueDict[suffixDepth(self.ValueDict.keys(),value)] = viewer
 
-    def __getitem__(self,name,returnViewList=False):
-        if type(name) is int:
-            return self.list[name]
-        elif type(name) is str:
-            return self.ValueDict[name]
-        elif type(name) is list or type(name) is tuple:
-            returnList = []
-            for runname in name:
-                returnList += [self.ValueDict[runname]]
+#     def __getitem__(self,name,returnViewList=False):
+#         if type(name) is int:
+#             return self.list[name]
+#         elif type(name) is str:
+#             return self.ValueDict[name]
+#         elif type(name) is list or type(name) is tuple:
+#             returnList = []
+#             for runname in name:
+#                 returnList += [self.ValueDict[runname]]
 
-            if returnViewList==True:
-                returnList = ViewerList(returnList)
+#             if returnViewList==True:
+#                 returnList = ViewerList(returnList)
 
-            return returnList
+#             return returnList
         
     
-    def __str__(self):
+#     def __str__(self):
 
-        string = 'Viewer list: \n'
-        for viewer in self.list:
-            string += '  ' + str(viewer.getValue()) + '\n'
-        return string
+#         string = 'Viewer list: \n'
+#         for viewer in self.list:
+#             string += '  ' + str(viewer.getValue()) + '\n'
+#         return string
     
-    def __repr__(self):
-        return str(self)
+#     def __repr__(self):
+#         return str(self)
         
 
 

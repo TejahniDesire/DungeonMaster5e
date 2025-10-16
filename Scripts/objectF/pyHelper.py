@@ -28,6 +28,9 @@ def sign_string(bonus,show_positive =True,show_negative = True):
 def string_to_list(string:str, delineator:str = ','):
     return list(map(str, string.split(delineator)))
 
+def keep_only_char(string,charz):
+    return ''.join([char for char in string if char == charz])
+
 def readTuple(tupleStr,delineator=',',pos1_type=int,pos2_type=int):
     pos1 = ''.join(filter(str.isalnum, tupleStr.split(delineator)[0]))
     pos2 = ''.join(filter(str.isalnum, tupleStr.split(delineator)[1]))

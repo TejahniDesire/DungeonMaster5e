@@ -14,3 +14,7 @@ SmallLeftArrowURL = AppURL +"images/small-left-arrow.png"
 BigRightArrowURL = AppURL +"images/big-right-arrow.png"
 MidRightArrowURL = AppURL +"images/mid-right-arrow.png"
 SmallRightArrowURL = AppURL +"images/small-right-arrow.png"
+
+BigConcentricCircleURL = AppURL + "images/BigCCircle.png"
+MidConcentricCircleURL = AppURL + "images/MidCCircle.png"
+SmallConcentricCircleURL = AppURL + "images/SmallCCircle.png"

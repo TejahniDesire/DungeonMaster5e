@@ -117,7 +117,7 @@ class ItemHolder:
 
         diction = {}
         for item in self.get_all_items():
-            diction[item.get_name()] = {0: item.save_text()[1]}
+            diction[item.get_name()] = {item.save_text()[1]: 0}
         return diction
         
 

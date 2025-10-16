@@ -3,7 +3,9 @@ import sys
 import pathlib
 
 from ..objectF import itemsDnD, pyHelper
+from ..metaF import directoryCrawler
 from . import charecterAttributes, inventory, charecterMechanics, time
+from datetime import datetime
 
 class CharacterSheet:
 
@@ -167,10 +169,20 @@ class CharacterSheet:
     def save(self,path:str):
         if path[-1] != '/':
             path += '/'
-
+        save_dir = path + "{}_save".format(self.get_name()) +  datetime.now().strftime("%D_%H_%M_%S_%f").replace('/','_') + '/'
+        directoryCrawler.createSubDirectory(save_dir,kill_policy=True)
         # Inventory Protocal
-        inventory_dir = path + 'inventories/main_inventory.txt'
+        inventory_file_dir = save_dir + 'inventories/' + 'main_inventory.txt'
+        inventory_dir_dict = {'folder_dir':save_dir + 'inventories/'}
+        inventory_dir_dict['file_dir'] = inventory_dir_dict['dir'] + 'main_inventory.txt'
         
+
+
+
+
+        directoryCrawler.createSubDirectory(inventory_dict['dir'],kill_policy=False)
+        directoryCrawler.createTxtFile(inventory_dict['txt'],'',True)
+        itemDict = self.inventory.getItemDictionary()
 
         
 
