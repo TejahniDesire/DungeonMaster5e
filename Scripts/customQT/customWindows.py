@@ -916,8 +916,6 @@ class DiceRoll(QFrame):
                 2:totals.argmax()
             }[self.advantage_level.getValue()]
         total_bonus = self.getTotalBonus()
-        print(rolls)
-        print(totals)
         for i in range(num_of_rolls):
             scroll = QScrollArea()
             scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -950,24 +948,30 @@ class DiceRoll(QFrame):
             label.setStyleSheet(stylesheet)
             inner_scroll_layout.addWidget(label)
 
-            label = QLabel()
-            label.setText(" + ")
-            label.setAlignment(QtCore.Qt.AlignCenter)
-            label.setFont(style.LabelFontBigBold)
-            label.setStyleSheet(stylesheet)
-            label.setStyleSheet("border-radius: 5")
-            inner_scroll_layout.addWidget(label)
+            if total_bonus != 0:
+                label = QLabel()
+                label.setText(' ' + pyHelper.sign_string(total_bonus) + ' ')
+                label.setAlignment(QtCore.Qt.AlignCenter)
+                label.setFont(style.LabelFontBigBold)
+                label.setStyleSheet(stylesheet)
+                label.setStyleSheet("border-radius: 5")
+                inner_scroll_layout.addWidget(label)
 
             bonus_label = QLabel()
-            bonus_label.setText(pyHelper.sign_string(total_bonus,show_negative=False) +  '('+str(total_bonus) + ')'+ ' = ' + str(total_bonus + totals[i]))
+            bonus_string = '= ' + str(total_bonus + totals[i])
+            if total_bonus != 0:
+                bonus_string = '('+str(np.abs(total_bonus)) + ')'+ ' ' + bonus_string
+            bonus_label.setText(bonus_string)
             bonus_label.setAlignment(QtCore.Qt.AlignCenter)
             bonus_label.setFont(style.LabelFontBigBold)
             bonus_label.setStyleSheet(stylesheet)
             # gridLayout.addWidget(bonus_label,i,1)
-            inner_scroll_layout.addWidget(bonus_label)
-            inner_scroll_layout.addWidget(QLabel(),stretch=1)
-            gridLayout.addWidget(scroll,i,0)
-        gridLayout.setColumnStretch(2, 1) 
+            if (total_bonus != 0) or (self.advantage_level != 0):
+                if total_bonus != 0:
+                    inner_scroll_layout.addWidget(bonus_label)
+                    inner_scroll_layout.addWidget(QLabel(),stretch=1)
+                gridLayout.addWidget(scroll,i,0)
+        if total_bonus != 0: gridLayout.setColumnStretch(2, 1) 
         state_1_layout.addLayout(gridLayout)
         
 
@@ -978,7 +982,7 @@ class DiceRoll(QFrame):
         final.setLayout(final_layout)
         final_roll = totals[selected_run]
         final_label = QLabel()
-        final_label.setText(str(final_roll + total_bonus))
+        final_label.setText(" "+ str(final_roll + total_bonus) + " ")
         final_label.setAlignment(QtCore.Qt.AlignCenter)
         final_label.setFont(style.LargeLabelFontBold)
         final_label.setStyleSheet(style.GreyLabel2)
