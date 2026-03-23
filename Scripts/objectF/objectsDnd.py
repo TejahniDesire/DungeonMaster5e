@@ -15,6 +15,15 @@ def rollDice(amount: int,dicetype:int):
     dice = Dice(amount,dicetype)
     return dice.roll_dice()
 
+def complexRollDice(num_of_rolls,dice_per_roll,dicetype):
+
+    rolls = np.ndarray([num_of_rolls,dice_per_roll],dtype=int)
+    for i in range(num_of_rolls):
+        for j in range(dice_per_roll):
+            rolls[i,j] = rollDice(1,dicetype)
+            
+    return rolls,rolls.sum(axis=1)
+
 class Dice:
 
     def __init__(self, amount: int, dicetype: int):

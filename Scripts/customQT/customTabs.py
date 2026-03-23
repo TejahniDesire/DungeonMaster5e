@@ -1,7 +1,8 @@
 import math
 import numpy as np
 from ..objectF import pyHelper
-
+from ..metaF import EZPaths
+import gc
 
 from PyQt5.QtWidgets import (
     # QApplication,
@@ -47,6 +48,7 @@ from functools import partial
 
 from ..customQT import (style, QTHelper)
 
+
 class MainTab(QWidget):
 
     def __init__(self, tcharecter, *args, **kwargs):
@@ -62,7 +64,7 @@ class MainTab(QWidget):
 
         left_stats_layout = QVBoxLayout() 
         
-        self.attribute_labels = customWidgets.AllStatWidgets(tcharecter.get_attribute,tcharecter.get_skills_of_attribute) # Attributes, Skills 
+        self.attribute_labels = customWidgets.AllStatWidgets(tcharecter.get_skills_of_attribute,tcharecter.get_all_attributes,tcharecter.get_all_skills,tcharecter.get_all_saving_throws) # Attributes, Skills 
 
         # top_layout_______________________________
         self.top_widget = customWidgets.RPWidget(tcharecter.get_all_top()) # Top stats (name, class, level, background, Race, Aligment, Experience Points)
@@ -72,7 +74,7 @@ class MainTab(QWidget):
         # Mid top stats (AC, initiative, speed, max hit points, current hit points)
         # Mid mid stats (Hit dice, Death Saving throws)
         self.mid_widget = customWidgets.MiddleWidget(tcharecter.get_all_mid_top(), tcharecter.get_all_mid_mid(),tcharecter.get_time()) 
-        mid_layout.addWidget(self.mid_widget.get_widget(),stretch=1)
+        mid_layout.addWidget(self.mid_widget.get_widget(),stretch=2)
 
         # test_button = QPushButton('test')
         # test_button.clicked.connect(partial(self.test))
@@ -138,13 +140,20 @@ class Inventory(QWidget):
 
 class Options(QWidget):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self,tcharecter_save_func,main_menu_func, *args, main_menu_instance=None,process_events, **kwargs):
         super().__init__(*args, **kwargs)
-
+    
+        self.save_func = tcharecter_save_func
+        self.main_menu_func = main_menu_func
+        self.main_menu_instance = main_menu_instance
+        self.process_events = process_events
+        # ____________________________________________________________________________________________________________________________________________
         options_layout = QVBoxLayout()
         self.setLayout(options_layout)
 
-        saveButton = QTHelper.CreateGenButton("Save", style.LabelFont1, style.SubButtonSheet, self.save, minWidth=400)
+        self.save_path = EZPaths.Saves_Path
+        saveButton = QTHelper.CreateGenButton("Quick Save", style.LabelFont1, style.SubButtonSheet, self.save, minWidth=400)
+        mainMenuButton = QTHelper.CreateGenButton("Main Menu", style.LabelFont1, style.SubButtonSheet, self.launchMainMenu, minWidth=400)
 
         DarkModeToggle = QCheckBox()
         DarkModeToggle.setText("Dark Mode Toggled: On")
@@ -158,6 +167,7 @@ class Options(QWidget):
         frame.setMinimumWidth(600)
         options_sub_layout = QVBoxLayout(frame)
         options_sub_layout.addWidget(QTHelper.CreateSeperator())
+        options_sub_layout.addWidget(mainMenuButton, alignment=QtCore.Qt.AlignCenter)
         options_sub_layout.addWidget(saveButton, alignment=QtCore.Qt.AlignCenter)
         options_sub_layout.addWidget(DarkModeToggle, alignment=QtCore.Qt.AlignCenter)
         options_sub_layout.addWidget(QTHelper.CreateSeperator())
@@ -176,4 +186,21 @@ class Options(QWidget):
             set_text_function("Dark Mode Toggled: On")
 
     def save(self):
-        print("SAVED!!!!")
+
+        progress = pyHelper.ProgressMarker()
+
+        self.progressBar = customWidgets.LoadingBar(progress,'saving_char')
+        self.progressBar.show()
+
+        self.save_func(self.save_path,progress,self.process_events)
+        self.progressBar.close()
+
+    def launchMainMenu(self):
+        if self.main_menu_instance is not None:
+            self.main_menu_instance.close()
+            gc.collect
+            
+        self.main_menu_instance = self.main_menu_func()
+        self.main_menu_instance.show()
+        
+

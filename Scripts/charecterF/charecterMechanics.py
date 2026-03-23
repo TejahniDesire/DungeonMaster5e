@@ -55,6 +55,29 @@ class HitDice:
     def get_hd_type(self):
         return self.hd_type
 
+    def get_save_diction(self):
+        name = "Hit Dice"
+
+        diction = {
+            'total_hd':   {str(self.get_total_hd()):0},
+            'current_hd': {str(self.get_current_hd()):0},
+            'hd_type':    {str(self.get_hd_type()):0}
+        }
+        return name, diction
+
+    def set_viewer_dict(self,viewerDict):
+        total_hd = int(viewerDict[0][0].getValue())
+        current_hd = int(viewerDict[1][0].getValue())
+        hd_type = int(viewerDict[2][0].getValue())
+
+        self.set_d_type(hd_type)
+        self.set_total_hd(total_hd)
+        self.add_hd(current_hd)
+
+
+        
+
+
 
 class DeathSavingThrows:
 
@@ -117,6 +140,28 @@ class DeathSavingThrows:
 
     def get_failure_label(self):
         return self.labels[1]
+
+    def get_save_diction(self):
+        name = "Death Saving Throws" 
+
+        diction = {
+            "num_success": {str(self.get_num_success()):0},
+            "num_failure": {str(self.get_num_failure()):0},
+        }
+        return name, diction
+
+
+    def set_viewer_dict(self,viewerDict):
+
+        for i in range(int(viewerDict[0][0].getValue())):
+            self.mark_success()
+
+        for i in range(int(viewerDict[1][0].getValue())):
+            self.mark_failure()
+            
+
+
+
 
 
 class Encumbrance:

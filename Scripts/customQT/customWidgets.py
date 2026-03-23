@@ -43,6 +43,72 @@ from ..objectF import pyHelper, itemsDnD
 from ..metaF import imageURLS
 
 
+class LoadingBar(QWidget):
+
+    titles = {
+        'loading_char':"Loading Charecter...",
+        'saving_char': "Saving Charecter..."
+    }
+
+    progress_label = {
+        'loading_char':" Loading ",
+        'saving_char': " Saving "
+    }
+
+    labels = {
+        'loading_char': charecter.loadingSectionLabels,
+        'saving_char':  charecter.loadingSectionLabels
+    }
+
+    def __init__(self,progress:pyHelper.ProgressMarker,load_type:str):
+        super().__init__()
+        self.load_type = load_type
+        self.setWindowTitle(LoadingBar.titles[self.load_type])
+        
+        self.progress = progress
+        self.setMinimumWidth(800)
+        self.setMaximumHeight(100)
+        main_layout = QVBoxLayout()
+        self.setLayout(main_layout)
+        self.bar_layout = QHBoxLayout()
+        text_layout = QHBoxLayout()
+        main_layout.addLayout(self.bar_layout,stretch=2)
+        main_layout.addLayout(text_layout,stretch=1)
+
+
+        self.progressText = QTHelper.CreateLabel(LoadingBar.titles[self.load_type],font=style.LabelFont1,style_sheet=style.DarkGreyLabel)
+        text_layout.addWidget(self.progressText)
+
+
+        self.createProgressBar(0.0)
+        self.progress.addFunction(self.createProgressBar)
+
+            
+    def createProgressBar(self,fraction):
+        # Delete previous bars
+        for i in reversed(range(self.bar_layout.count())): 
+            self.bar_layout.itemAt(i).widget().setParent(None)
+        # ---------------------------------------------------
+        num_of_bars = 30
+        fill_color = ["gainsboro","palegoldenrod","sandybrown","indianred"]
+
+
+        num_of_filled_bars = int(fraction * num_of_bars)
+        for i in range(num_of_bars):
+            if (i + 1) <= num_of_filled_bars:
+                color = fill_color[1]
+                opacity = .7
+            else:
+                color = fill_color[0]
+                opacity = .4
+
+            currentBar = QTHelper.MakeColorWidget(color,opacity)
+            self.bar_layout.addWidget(currentBar,stretch=1)
+
+        section = int(np.floor(fraction * (len(LoadingBar.labels[self.load_type]) -2))) + 1
+
+        self.progressText.setText(str(self.progress) + LoadingBar.progress_label[self.load_type] + LoadingBar.labels[self.load_type][section])
+
 
 class CleanLineEdit(QLineEdit):
 
@@ -101,12 +167,13 @@ def create_top_label(string:str):
 
 class StatLayout:
 
-    def __init__(self, attribute: charecterAttributes.Stat, skills: list[charecterAttributes.Skill]):
+    def __init__(self, attribute: charecterAttributes.Stat, skills: list[charecterAttributes.Skill],tchar_all_attributes_func,tchar_all_skills_func,tchar_all_saving_func):
         self.attribute = attribute
         self.skills = skills
 
         # widget to be returned to app
         self.main_widget = QWidget()
+        self.main_widget.setMaximumWidth(600)
 
         # Widgets main layout
         outer_layout = QVBoxLayout(self.main_widget)
@@ -129,16 +196,25 @@ class StatLayout:
         # Frame for attribute labels
         self.frame1 = QTHelper.AttributeQFrame(attribute)
         self.frame1.setFrameShape(QFrame.Panel)
+        self.frame1.setMaximumWidth(300)
+        self.frame1.setMaximumHeight(100)
         # Frame for skill labels
         self.frame2 = QFrame()
         self.frame2.setFrameShape(QFrame.Panel)
+        self.frame2.setMaximumWidth(300)
 
-        main_layout.addWidget(self.frame1)
+        main_layout.addWidget(self.frame1,alignment=QtCore.Qt.AlignTop)
         main_layout.addWidget(self.frame2)
 
-        attribute_layout = QVBoxLayout(self.frame1)
-        skill_layout = QVBoxLayout(self.frame2)
+        attribute_dice_layout = QHBoxLayout(self.frame1)
+        attribute_layout = QVBoxLayout()
 
+        dice_layout = QGridLayout()
+
+        attribute_dice_layout.addLayout(attribute_layout,stretch=1)
+        attribute_dice_layout.addLayout(dice_layout,stretch=0)
+        # skill_layout = QVBoxLayout(self.frame2)
+        skill_layout = QGridLayout(self.frame2)
         # Attributes Labels___________
         self.att_labels = [
             QLabel(),
@@ -148,18 +224,25 @@ class StatLayout:
 
         bonus = attribute.get_total_bonus()
 
-        sign = pyHelper.sign_string(bonus)
+        sign = pyHelper.sign_string(bonus,show_negative=False)
+
+
 
         self.att_labels[1].setText(sign + str(bonus))
         self.att_labels[1].setFont( QFont('Times', 20, QFont.Decorative))
+        # self.att_labels[1].addWidget(bonus_label, alignment=QtCore.Qt.AlignCenter,stretch=1)
+        
+        dice_layout.addWidget(QTHelper.DiceButton(tchar_all_attributes_func,tchar_all_skills_func,tchar_all_saving_func,suggested_attribute=attribute,suggested_skill=None),2,0,QtCore.Qt.AlignBottom)
+        skill_layout.setRowStretch(0, 2)
+        skill_layout.setRowStretch(1, 2)
 
         # Label for "Strength, Wisdom, etc"
         top_label = QLabel(attribute.get_type())
         top_label.setFont(style.LabelFont2)
 
         attribute_layout.addWidget(top_label, alignment=QtCore.Qt.AlignCenter)
-        for i in range(len(self.att_labels)):
-            attribute_layout.addWidget(self.att_labels[i], alignment=QtCore.Qt.AlignCenter)
+        attribute_layout.addWidget(self.att_labels[0], alignment=QtCore.Qt.AlignCenter)
+        attribute_layout.addWidget(self.att_labels[1], alignment=QtCore.Qt.AlignCenter)
 
         # Skill Labels___________
         self.skill_labels = []
@@ -167,14 +250,30 @@ class StatLayout:
         for name in list(skills):
             skill_string = skills[name].get_type()
             bonus = skills[name].get_total_bonus()
-            sign = pyHelper.sign_string(bonus)
+            sign = pyHelper.sign_string(bonus,show_negative=False)
 
             skill_string += ': ' + sign + str(bonus)
             self.skill_labels += [QCheckBox(skill_string)]
             self.skill_labels[i].setFont(style.LabelFont3)
             self.skill_labels[i].toggled.connect(partial(self.skill_checked, skills[name], self.skill_labels[i]))
-            skill_layout.addWidget(self.skill_labels[i], alignment=(QtCore.Qt.AlignLeft | QtCore.Qt.AlignBottom))
+            skill_layout.addWidget(self.skill_labels[i],i,0, alignment=(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop))
+            infoButton = QTHelper.SkillInfoQFrame(skills[name])
+            # infoButton.setFrameShape(QFrame.Panel)
+
+            skill_layout.addWidget(infoButton,i,1, alignment=(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop))
+
+            # if skills[name].get_type() == 'saving':
+            #     suggested_skill = charecterAttributes.AbS_key_to_type[attribute.get_type()] + '-saving'
+            # else:
+            #     suggested_skill = skills[name].get_type()
+
+            roll_button = QTHelper.DiceButton(tchar_all_attributes_func,tchar_all_skills_func,tchar_all_saving_func,suggested_attribute=attribute,suggested_skill=skills[name])
+            skill_layout.addWidget(roll_button,i,2, alignment=(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop))
+            skill_layout.setColumnStretch(3, 1)
             i += 1
+        
+
+        self.main_widget.setMaximumHeight(300)
 
     def getWidget(self):
         return self.main_widget
@@ -185,8 +284,9 @@ class StatLayout:
         self.att_labels[0].setText(str(self.attribute.get_total_base()))
 
         bonus = self.attribute.get_total_bonus()
-        sign = pyHelper.sign_string(bonus)
+        sign = pyHelper.sign_string(bonus,show_negative=False)
         self.att_labels[1].setText(sign + str(bonus))
+        # self.att_labels[1].setText(str(bonus))
 
         i = 0
         # Update Skills
@@ -194,10 +294,12 @@ class StatLayout:
             self.skills[name].update()
             skill_string = self.skills[name].get_type()
             bonus = self.skills[name].get_total_bonus()
-            sign = pyHelper.sign_string(bonus)
+            sign = pyHelper.sign_string(bonus,show_negative=False)
             skill_string += ': ' + sign + str(bonus)
+            # skill_string += ': ' + str(bonus)
 
             self.skill_labels[i].setText(skill_string)
+            self.skill_labels[i].setChecked(self.skills[name].has_skill())
             i += 1
         
         self.frame1.update()
@@ -207,28 +309,32 @@ class StatLayout:
             skill.learn()
         else:
             skill.unlearn()
-
+        bonus = skill.get_total_bonus()
+        sign = pyHelper.sign_string(bonus,show_negative=False)
+        skill_string = skill.get_type()
+        skill_string += ': ' + sign + str(bonus)
+        button.setText(skill_string)
         self.update()
 
         
 class AllStatWidgets:
 
-    def __init__(self, attributes_func, skills_func):
+    def __init__(self,skills_func,tchar_all_attributes_func,tchar_all_skills_func,tchar_all_saving_func):
         # Hold All Widgets for {Attribute, Skills}
-
+        
         self.attribute_labels = {
             'str': StatLayout(
-                attributes_func('str'), skills_func('str')),
+                tchar_all_attributes_func()['str'], skills_func('str'),tchar_all_attributes_func,tchar_all_skills_func,tchar_all_saving_func),
             'dex': StatLayout(
-                attributes_func('dex'), skills_func('dex')),
+                tchar_all_attributes_func()['dex'], skills_func('dex'),tchar_all_attributes_func,tchar_all_skills_func,tchar_all_saving_func),
             'con': StatLayout(
-                attributes_func('con'), skills_func('con')),
+                tchar_all_attributes_func()['con'], skills_func('con'),tchar_all_attributes_func,tchar_all_skills_func,tchar_all_saving_func),
             'int': StatLayout(
-                attributes_func('int'), skills_func('int')),
+                tchar_all_attributes_func()['int'], skills_func('int'),tchar_all_attributes_func,tchar_all_skills_func,tchar_all_saving_func),
             'wis': StatLayout(
-                attributes_func('wis'), skills_func('wis')),
+                tchar_all_attributes_func()['wis'], skills_func('wis'),tchar_all_attributes_func,tchar_all_skills_func,tchar_all_saving_func),
             'chr': StatLayout(
-                attributes_func('chr'), skills_func('chr'))
+                tchar_all_attributes_func()['chr'], skills_func('chr'),tchar_all_attributes_func,tchar_all_skills_func,tchar_all_saving_func),
         }
 
     def get_specific_layout(self,layout:str):
@@ -442,19 +548,46 @@ class MiddleWidget:
         first_layout_outer.addWidget(QTHelper.CreateSeperator())
 
         # AC_Layout_________________
-        frame, self.tp_values["ac"] = create_frame(self.tp["ac"].get_type(),
-                                                        str(self.tp["ac"].get_total_base()))
-        first_layout_inner.addWidget(frame)
+        
+        self.tp_values["ac"] = QTHelper.MidStatQFrame(
+            top_label_str = self.tp["ac"].get_type(), 
+            bottom_label_str= str(self.tp["ac"].get_total_base()),
+            full_name= "Armor Class",
+            contrib = self.tp["ac"].contrib_base,
+            total = self.tp["ac"].get_total_base_ref()
+            )
+        first_layout_inner.addWidget(self.tp_values["ac"])
 
         # init_Layout_________________
-        frame, self.tp_values["init"]  = create_frame(self.tp["init"].get_type(),
-                                                           self.tp["init"].get_total_bonus_string())
-        first_layout_inner.addWidget(frame)
+
+        self.tp_values["init"] = QTHelper.MidStatQFrame(
+            top_label_str = self.tp["init"].get_type(), 
+            bottom_label_str= str(self.tp["init"].get_total_bonus_string()),
+            full_name= "Initiative Bonus",
+            contrib = self.tp["init"].contrib,
+            total = self.tp["init"].get_total_bonus_ref()
+            )
+        first_layout_inner.addWidget(self.tp_values["init"])
+
+        # frame, self.tp_values["init"]  = create_frame(self.tp["init"].get_type(),
+        #                                                    self.tp["init"].get_total_bonus_string())
+        # first_layout_inner.addWidget(frame)
 
         # Speed_Layout_________________
-        frame, self.tp_values["speed"] = create_frame(self.tp["speed"].get_type(),
-                                                           str(self.tp["speed"].get_total_base()))
-        first_layout_inner.addWidget(frame)
+
+        self.tp_values["speed"] = QTHelper.MidStatQFrame(
+            top_label_str = self.tp["speed"].get_type(), 
+            bottom_label_str= str(self.tp["speed"].get_total_frac_str()),
+            full_name= "Speed",
+            contrib = self.tp["speed"].contrib_base,
+            total = self.tp["speed"].get_denominator_ref()
+            )
+        first_layout_inner.addWidget(self.tp_values["speed"])
+
+
+        # frame, self.tp_values["speed"] = create_frame(self.tp["speed"].get_type(),
+        #                                                    str(self.tp["speed"].get_total_base()))
+        # first_layout_inner.addWidget(frame)
 
 
         # Second inner layout_________________________________________________________________________________________
@@ -466,14 +599,24 @@ class MiddleWidget:
         first_layout_outer.addWidget(QTHelper.CreateSeperator())
 
         # Hit Points Max_______________
-        frame, self.tp_values["mhp"] = create_frame(self.tp["mhp"].get_type(),
-                                                         str(self.tp["mhp"].get_total_base()))
-        second_layout_inner.addWidget(frame)
+
+        self.tp_values["mhp"] = QTHelper.MidStatQFrame(
+            top_label_str = "Hit Point Maximum", 
+            bottom_label_str= str(self.tp["speed"].get_total_frac_str()),
+            full_name= "Hit Point Maximum",
+            contrib = self.tp["hp"].contrib_base,
+            total = self.tp["hp"].get_denominator_ref()
+            )
+
+
+        # frame, self.tp_values["mhp"] = create_frame("Hit Point Maximum",
+        #                                                  str(self.tp["hp"].get_denominator_ref()))
+        second_layout_inner.addWidget(self.tp_values["mhp"])
 
         # Hit Points Current_______________
 
-        frame, self.tp_values["chp"] = create_frame(self.tp["chp"].get_type(),
-                                                         str(self.tp["chp"].get_total_base()))
+        frame, self.tp_values["chp"] = create_frame("Current Hit Points",
+                                                         str(self.tp["hp"].get_numerator_ref()))
         second_layout_inner.addWidget(frame)
 
         # Thirds inner layout_________________________________________________________________________________________
@@ -509,7 +652,8 @@ class MiddleWidget:
 
         frame3 = QFrame()
         frame3.setFrameShape(QFrame.Panel)
-        frame3.setMaximumHeight(220)
+        frame3.setMaximumHeight(420)
+        frame3.setMinimumHeight(320)
 
         self.timewidget = TimeLabel(time)
         timeLayout = QHBoxLayout(frame3)
@@ -572,20 +716,38 @@ class MiddleWidget:
         return self.main_widget
 
     def update(self):
-        for name in list(self.tp_values):
+        keys = ["ac","init","speed","mhp","chp","thd","chd"]
+        for name in self.tp.keys(): 
             self.tp[name].update()
-            self.tp_values[name].update()
-
-            if name == "init":
-                self.tp_values[name].setText(self.tp[name].get_total_bonus_string())
-            else:
-                self.tp_values[name].setText(str(self.tp[name].get_total_base()))
-
         self.mdl["hd"].update()
+        self.mdl["death"].update()
+
+
+
+        
+        # update values
+
+        self.tp_values["ac"].update()
+        self.tp_values["ac"].setText(str(self.tp["ac"].get_total_base()))
+
+        self.tp_values["init"].update()
+        self.tp_values["init"].setText(self.tp["init"].get_total_bonus_string())
+
+        self.tp_values["speed"].update()
+        self.tp_values["speed"].setText(self.tp["speed"].get_total_frac_str())
+
+        self.tp_values['mhp'].update()
+        self.tp_values['mhp'].setText(str(self.tp["hp"].get_denominator_ref()))
+
+        self.tp_values['chp'].update()
+        self.tp_values['chp'].setText(str(self.tp["hp"].get_numerator_ref()))
+
+        self.mdl_values["thd"].update()
         self.mdl_values["thd"].setText(self.mdl["hd"].get_total_hd_string())
+        
+        self.mdl_values["chd"].update()
         self.mdl_values["chd"].setText(self.mdl["hd"].get_current_hd_string())
 
-        self.mdl["death"].update()
         total_failures = self.mdl["death"].get_num_failure()
         total_successes = self.mdl["death"].get_num_success()
 
@@ -677,7 +839,6 @@ class WeaponWidget:
 
         counter = 2
         for key in self.ATiventory.inventory.keys():
-            print(key)
             name, bonus, damage,subtract_button = self.createWeaponRow(self.ATiventory[key])
             grid_layout.addWidget(QTHelper.CreateVSeperator(), counter, 0)
 
@@ -947,7 +1108,7 @@ class InventoryWidget:
         cancel_search = QTHelper.CreateGenButton(
             stylesheet=style.ItemEditButton,
             icon_url=imageURLS.XUrl,
-            icon_size=QtCore.QSize(20, 20),
+            icon_size=QtCore.QSize(21, 21),
             function_list=[partial(self.searchbar.setText,''),self.update]
         )
 
@@ -983,7 +1144,6 @@ class InventoryWidget:
 
     def make_stacked_layout(self):
         items = self.items
-        print(len(items))
 
         num_of_items = len(items)
         num_per_column = 10
@@ -1038,7 +1198,6 @@ class InventoryWidget:
             self.widgets["currency_amounts"][i].setText(str(money_value[i]))
 
         self.items = self.tinventory.get_items(self.searchbar.text())
-        print(self.tinventory.order)
         self.create_item_labels()
         self.encumberance_label.update()
         self.encumberance_status_label1.setText(self.tinventory.encumberance.get_encumberance_word_status())
@@ -1175,7 +1334,7 @@ class TimeLabel(QFrame):
         self.scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
         self.scroll.setWidgetResizable(True)
 
-        self.setMaximumHeight(400)
+        self.setMaximumHeight(300)
 
         self.setMinimumHeight(200)
         
@@ -1250,39 +1409,21 @@ class TimeLabel(QFrame):
                 button.setCheckable(True)
             upper_time_layout.addWidget(button,alignment=QtCore.Qt.AlignLeft,stretch=1)
 
-        
+        self.splinters = time.getSplinters(covert=False)
 
-
-        # slider = QSlider()
-        # # slider.setGeometry(QtCore.QRect(190, 100, 160, 16))
-        # slider.setOrientation(QtCore.Qt.Horizontal)
-        # slider.setTickInterval(1)
-        # slider.setMinimum(0)
-        # slider.setMaximum(2)
-        # slider.valueChanged.connect(self.setScale)
-        # slider.setMaximumHeight(upperHeight)
-        
-        
-
-        
-        
-        # upper_time_layout.addWidget(slider,alignment=QtCore.Qt.AlignLeft)
-        self.splinters = {}
-        self.splinterNames = {}
 
         self.timeWidgets = []
         self.createTimeLabel()
 
     def update(self):
+        self.time.update()
         self.createTimeLabel()
+        self.setSplinters()
         i = 1
         for key in self.splinters.keys():
             self.createSplinterLabel(self.splinters[key],i)
-            print(self.splinterNames[key])
             i +=1
-        self.scroll.verticalScrollBar().setValue(0)
-
-            
+        self.scroll.verticalScrollBar().setValue(0)    
 
     def createTimeLabel(self):
         for label in self.timeWidgets:
@@ -1318,13 +1459,6 @@ class TimeLabel(QFrame):
             function_list=[partial(self.AlterTime,'small',-1)]
         )
 
-        # minusSmall =QTHelper.CreateGenButton(
-        #     stylesheet=style.ItemEditButton,
-        #     icon_url=imageURLS.leftArrowURL,
-        #     icon_size=QtCore.QSize(20, 20),
-        #     function_list=[]
-        # )
-        # Minus--------------------------
 
         queryTime = {
             0: ['week','day'],
@@ -1379,14 +1513,20 @@ class TimeLabel(QFrame):
 
         self.timeWidgets += [grandTimeWidget]
 
+    def setSplinters(self):
+        self.splinters = self.time.getSplinters(covert=False).copy()
+
+        
+
     def createSplinter(self):
         key = self.time.getTime(unit='second',absolute=True)
-        if key in self.splinters.keys():
-            self.update()
-            return  
-        key, splinter = self.time.splinterTime(protect=True)
-        self.splinters[key] = splinter
-        self.splinterNames[key] = pyHelper.ReferenceString('(Splint: ' + str(len(self.splinterNames.keys())) + ') ')
+        # if key in self.splinters.keys():
+        #     self.splinters[key].update()
+        #     return  
+        name = '(Splint: ' + str(len(self.timeWidgets)) + ') '
+        key, splinter = self.time.splinterTime(protect=True,player_name=name)
+        # self.splinters[key] = splinter
+        # self.splinterNames[key] = pyHelper.ReferenceString('(Splint: ' + str(len(self.splinterNames.keys())) + ') ')
         self.update()
 
     def createSplinterLabel(self,splinter,order):
@@ -1396,10 +1536,9 @@ class TimeLabel(QFrame):
         timeWidget.setLayout(timeLayout)
 
         splint_key = splinter.getInit()
-        splint_name = self.splinterNames[splint_key]
-        # if splint_name is None:
-        #     splint_name = pyHelper.ReferenceString('(Splint: ' + str(order) + ') ')
-        #     print("NONENONONEONE")
+        splint_name = splinter.player_name
+        if splint_name is None:
+            return
 
         queryTime = {
             0: ['week','day'],
@@ -1418,8 +1557,6 @@ class TimeLabel(QFrame):
             precurser = '(' + splinter.getSignString() + ') '
         else:
             precurser = ''
-
-        # prepre = '(Splint: ' + str(order) + ') '
         
         tLabel = QTHelper.CreateLabel(precurser + time_string, style.LabelFont1)
 
@@ -1430,18 +1567,15 @@ class TimeLabel(QFrame):
             function_list=[partial(self.deleteSplinter,splinter.getInit())]
         )
 
-        # Name the Splint:
         font = QFont('Times', 13, QFont.Bold)
         font.setWeight(12)
         splinterLabel = CleanLineEdit(text=splint_name, font=font)
+        splinterLabel.textChanged.connect(splinter.setPlayerName)
         splinterLabel.setMaxLength(15)
 
 
         #__________-
 
-        
-
-        # font.setItalic(True)
         timeLayout.addWidget(splinterLabel,stretch=1)
         timeLayout.addWidget(tLabel,stretch=1)
         timeLayout.addWidget(delete,stretch=1)
@@ -1452,21 +1586,22 @@ class TimeLabel(QFrame):
         self.timeWidgets += [timeWidget]
 
     def updateSplinterName(self, splinter_key, newName:str):
-        self.splinterNames[splinter_key] = newName
+        self.splinters[splinter_key].setPlayerName(newName)
         
     
     def deleteSplinter(self,init):
-        self.splinters[init]
         i = 1
         for key in self.splinters.keys():
             if init == self.splinters[key].getInit():
                 self.timeWidgets[i].setParent(None)
                 del self.timeWidgets[i]
                 del_index = key
+                self.splinters[key].unprotectByOne()
+                self.splinters[key].setPlayerName(None)
                 
             i += 1
         del self.splinters[del_index]
-        self.time.removeSplinter(init)
+        self.time.removeSplinter(init,covert=False)
         self.update()
 
 
@@ -1528,10 +1663,7 @@ class SplinterTimeLabel(QFrame):
         font.setItalic(True)
         
         self.label = CleanLineEdit('(Splint: ' + str(order) + ') ', font, None)
-        layout.addWidget(self.label)
-
-
-        
+        layout.addWidget(self.label)        
 
     def alterName(self,newName):
         self.label.setText(newName)

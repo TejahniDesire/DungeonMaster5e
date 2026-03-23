@@ -224,7 +224,7 @@ class AttackInventory(ItemHolder):
         if item in self.item_inventory_object.inventory:
             self.add_item(self.item_inventory_object.inventory[item],amount=0)
         else:
-            print(item + " not in inventory")
+            print(item + " not in inventory!!!")
 
 
 

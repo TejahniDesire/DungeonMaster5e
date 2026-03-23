@@ -8,7 +8,7 @@ from . import pyHelper, objectsDnd
 
 line = "________________________________________________________________________\n"
 Delineator = '-*^*-'
-Weapon_Property_Delineator = ';]},'
+Weapon_Property_Delineator = '.,134]},'
 class Item:
 
     def __init__(self, name: str, weight: float, cost: tuple = (0, "gp"), category: str = "Misc",bonus: int = 0):
@@ -260,6 +260,17 @@ class Weapon(Item):
         string +=str(self.scaling)+ Delineator
         string +=str(self.scaling_fixed)+ Delineator
         return self.name, string
+    
+def loadItemViewerDicts(viewerDict):
+    items = []
+    for key in viewerDict.keys():
+        current_item = viewerDict[key]
+        name = current_item.getValue()
+        substring = current_item[0].getValue()
+        print("Name: ", name)
+        print("Substring: ",substring)
+        items += [loadGenItem(name,substring)]
+    return items
 
 
 def generalItemTextParser(item_string):

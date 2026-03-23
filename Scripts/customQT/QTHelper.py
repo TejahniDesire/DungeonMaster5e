@@ -17,13 +17,14 @@ from PyQt5.QtWidgets import (
     QScrollArea,
     QFrame, QGraphicsOpacityEffect, QLineEdit, QSpinBox
 )
-from PyQt5.QtGui import QPalette, QColor, QFont, QIcon
+from PyQt5.QtGui import QPalette, QColor, QFont, QIcon, QPixmap, QPainter
 from PyQt5 import QtCore, Qt
+from PyQt5.QtCore import pyqtSignal, QObject
 
 from functools import partial
 
 from PyQt5.sip import delete
-
+# from PySide6.QtCore import 
 
 from ..objectF import pyHelper,itemsDnD,objectsDnd
 from ..charecterF import (charecter, charecterMechanics, charecterAttributes, inventory)
@@ -31,6 +32,94 @@ from . import style, customWindows
 from ..metaF import imageURLS
 # import objectsDnD, style, charManagers, ruleTools, imageURLS, pyObjects
 
+class FinishedSignal(QObject):
+    finishedit = pyqtSignal()
+
+class CleanSpinBox(QSpinBox):
+
+    def __init__(self):
+        super().__init__()
+        self.signal = FinishedSignal()
+        self.editingFinished.connect(self.handle_editing_finished)
+
+    def focusOutEvent(self, e):
+        super(CleanSpinBox,self).focusOutEvent(e)
+        self.signal.finishedit.emit()
+        self.setReadOnly(True)
+
+    def mousePressEvent(self, e):
+        self.setReadOnly(False)
+        super(CleanSpinBox, self).mousePressEvent(e)
+
+    def handle_editing_finished(self):
+        self.signal.finishedit.emit()
+        
+class ButtonSpinBox(QFrame):
+
+    def __init__(self,push_button_style_sheet,spin_box_style_sheet,value=0,font=None,max_value=999,update_func=None):
+        super().__init__()
+        # self.setFrameShape(QFrame.Panel)
+        self.layout = QVBoxLayout(self)
+        
+        self.value = pyHelper.ReferenceNumber(value,True)
+        self.max_value = max_value
+        self.font = font
+        self.isButtonState = True
+        self.isLastStateButton = True
+        self.update_func = update_func
+        
+
+        self.push_button = None
+        self.push_button_style_sheet = push_button_style_sheet
+
+        self.spin_box = None
+        self.spin_box_style_sheet = spin_box_style_sheet
+    
+        
+        self.update()
+
+    
+    def update(self):
+        clear_layout(self.layout)
+        # self.layout = QVBoxLayout(self)
+        # if self.spin_box is not None: self.spin_box.deleteLater()
+        # if self.push_button is not None: self.push_button.deleteLater()
+            
+        
+
+        if self.isButtonState:
+            self.push_button = QPushButton()
+            if self.font is not None: self.push_button.setFont(self.font)
+            self.push_button.setText(str(self.value.getValue()))
+            if self.push_button_style_sheet is not None: self.push_button.setStyleSheet(self.push_button_style_sheet)
+            self.push_button.clicked.connect(partial(self.setState,False,self.push_button.text))
+            self.layout.addWidget(self.push_button)
+        else:
+            self.spin_box = QSpinBox()
+            if self.font is not None: self.spin_box.setFont(self.font)
+            self.spin_box.setValue(self.value.getValue())
+            if self.spin_box_style_sheet is not None: self.spin_box.setStyleSheet(self.spin_box_style_sheet)
+            self.spin_box.setMaximum(self.max_value)
+            self.spin_box.editingFinished.connect(partial(self.setState,True,self.spin_box.value))
+            self.layout.addWidget(self.spin_box)
+            
+    
+    def setState(self,state:bool,new_value_func):
+        
+        
+        self.value.setValue(int(new_value_func()))
+        
+        if not self.isButtonState: 
+            self.update_func(self.value.getValue())
+            
+
+        
+
+        self.isButtonState = state
+        
+        self.update()
+        
+    
 
 def is_number(s):
     try:
@@ -115,8 +204,28 @@ def CreateLabel(text: str, font: QFont, style_sheet=None):
 
     if style_sheet is not None:
         label.setStyleSheet(style_sheet)
+
+
     return label
 
+def clear_layout(layout):
+    if layout is not None:
+        while layout.count():
+            item = layout.takeAt(0)
+            if item.widget() is not None:
+                item.widget().deleteLater()
+            elif item.layout() is not None:
+                clear_layout(item.layout())
+
+def clear_layout2(layout):
+    if layout is not None:
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget() is not None:
+                child.widget().deleteLater() # Use deleteLater to safely delete the widget
+            elif child.layout() is not None:
+                clear_layout(child.layout()) # Recursively clear sub-layouts
+            child.deleteLater() # Delete the layout item as well
 
 def deleteItemsOfLayout(layout):
     if layout is not None:
@@ -127,6 +236,16 @@ def deleteItemsOfLayout(layout):
                 widget.setParent(None)
             else:
                 deleteItemsOfLayout(item.layout())
+
+# class TextChangeLabel(QLabel):
+#     # Define a new signal specific to text changes
+#     textChanged = pyqtSignal(str)
+
+#     def setText(self, text: str):
+#         # Call the original setText method
+#         super().setText(text)
+#         # Emit the custom signal after the text has been set
+#         self.textChanged.emit(text)
 
 
 class CustomQSpinBox(QSpinBox):
@@ -339,6 +458,57 @@ def MakeColorWidget(color, opacity):
     widget.setMinimumHeight(10)
     return widget
 
+def create_top_label(string:str):
+    top_label = QLabel()
+    top_label.setText(string)
+    top_label.setFont(style.LabelFont2)
+    return top_label
+
+class MidStatQFrame(QFrame):
+    def __init__(self,top_label_str:str, bottom_label_str:str,full_name:str,contrib,total):
+        super().__init__()  
+
+        self.full_name = full_name
+        self.contrib = contrib
+        self.total = total
+        
+        self.setStyleSheet(style.highlighted_Qframe)
+        self.setFrameShape(QFrame.Panel)
+        self.setMaximumHeight(100)
+
+        layout = QVBoxLayout(self)
+
+        self.bottom_label = QLabel()
+        self.bottom_label.setText(bottom_label_str)
+
+        layout.addWidget(create_top_label(top_label_str), alignment=QtCore.Qt.AlignCenter)
+        layout.addWidget(self.bottom_label, alignment=QtCore.Qt.AlignCenter)
+
+        self.attributeWindow = None
+
+    
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+
+        if self.attributeWindow is not None:
+            self.attributeWindow.close()
+
+        self.attributeWindow = customWindows.MidStatWindow(name=self.full_name, contrib=self.contrib,total=self.total,close_function=partial(self.setStyleSheet,style.highlighted_Qframe))
+        self.attributeWindow.show()
+        
+        self.setStyleSheet(style.Pressed_Qframe)
+
+        # self.setStyleSheet(style.highlighted_Qframe)
+        
+
+    def setText(self,text):
+        return self.bottom_label.setText(text)
+    
+    def update(self):
+        if self.attributeWindow is not None:
+            self.attributeWindow.close()
+        # return frame, bottom_label
+
 
 class AttributeQFrame(QFrame):
 
@@ -367,10 +537,182 @@ class AttributeQFrame(QFrame):
         # self.setStyleSheet(style.highlighted_Qframe)
         
                                 
-        print(event)
 
     
     def update(self):
         if self.attributeWindow is not None:
             self.attributeWindow.close()
 
+
+class SkillInfoQFrame(QPushButton):
+
+    def __init__(self,skill):
+        super().__init__()  
+        self.skill = skill
+        self.setStyleSheet(style.ItemEditButton2)
+        self.skillWindow = None
+        size = 30
+        self.setMinimumWidth(size)
+        self.setMinimumHeight(size)
+        self.setMaximumWidth(size)
+        self.setMaximumHeight(size)
+        self.attributeWindow = None
+        self.setIcon(QIcon(imageURLS.InfoURL))
+        self.setIconSize(QtCore.QSize(size -5,size -5))
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+
+        if self.attributeWindow is not None:
+            self.attributeWindow.close()
+
+        self.attributeWindow = customWindows.SkillWindow(skill=self.skill,close_function=partial(self.setStyleSheet,style.ItemEditButton2))
+        self.attributeWindow.show()
+        
+        # self.setStyleSheet(style.ItemEditButton)
+
+class DiceButton(QPushButton):
+
+
+    def __init__(self,tchar_all_attributes_func,tchar_all_skills_func,tchar_all_saving_func,suggested_attribute=None,suggested_skill=None,icon_size=None):   
+        super().__init__()  
+        # self.skill = skill
+        self.setStyleSheet(style.ItemEditButton2)
+        self.skillWindow = None
+        size = 30
+        self.setMinimumWidth(size)
+        self.setMinimumHeight(size)
+        self.setMaximumWidth(size)
+        self.setMaximumHeight(size)
+        self.diceWindow = None
+
+        self.setIcon(QIcon(imageURLS.DiceURL))
+        self.setIconSize(QtCore.QSize(size -5,size -5))
+
+
+        self.all_attributes_func = tchar_all_attributes_func
+        self.all_skills_func = tchar_all_skills_func
+        self.all_saving_func = tchar_all_saving_func
+        self.suggested_attribute = suggested_attribute
+        self.suggested_skill = suggested_skill
+
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+
+        if self.diceWindow is not None:
+            self.diceWindow.close()
+
+        self.diceWindow = customWindows.DiceWindow(self.all_attributes_func,self.all_skills_func,self.all_saving_func,self.suggested_attribute,self.suggested_skill)
+        self.diceWindow.show()
+        
+        self.setStyleSheet(style.ItemEditButton2)
+
+
+def createDiceIcon(amount,dtype):
+    dice_url_paths = {
+        4: imageURLS.D4URL,
+        6: imageURLS.D6URL,
+        8: imageURLS.D8URL,
+        10: imageURLS.D10URL,
+        12: imageURLS.D12URL,
+        20: imageURLS.D20URL,
+        100: imageURLS.D100URL
+    }
+
+
+    string_amount = str(amount)
+    string_dtype = str(dtype)
+    
+
+
+    if (dtype in list(dice_url_paths.keys())) and amount == 1:
+
+        return QIcon(dice_url_paths[dtype])
+
+
+
+
+
+    amount_images = []
+    max_height = 0
+    total_width = 0
+    gap_pixels = 1
+    for num in string_amount:
+        i_image = QPixmap(imageURLS.numberURL[int(num)])
+        amount_images += [i_image]
+        
+        total_width += i_image.width()
+
+        i_height = i_image.height()
+        if i_height > max_height:
+            max_height = i_height
+
+
+    if dtype in list(dice_url_paths.keys()): inner_url = imageURLS.XUrl
+    else: inner_url = imageURLS.DURL
+
+    d_image = QPixmap(inner_url)
+    
+
+    d_image = d_image.scaled(
+        max_height, 
+        int(d_image.width() / 2), 
+        aspectRatioMode=QtCore.Qt.KeepAspectRatio,
+        transformMode=QtCore.Qt.SmoothTransformation
+    )
+    amount_images += [d_image]
+    total_width += d_image.width()
+
+    if dtype in list(dice_url_paths.keys()):
+        i_image = QPixmap(dice_url_paths[dtype])
+        
+        
+        new_width = 320 
+        new_height = 320
+
+
+        i_image = i_image.scaled(
+        new_width, 
+        new_height, 
+        aspectRatioMode=QtCore.Qt.KeepAspectRatio,
+        transformMode=QtCore.Qt.SmoothTransformation
+        )
+        total_width += i_image.width()
+        i_height = i_image.height()
+        if i_height > max_height:
+            max_height = i_height
+        amount_images += [i_image]
+    else:
+        # aspectRatioMode: Qt.AspectRatioMode = Qt.IgnoreAspectRatio, transformMode: Qt.TransformationMode = Qt.FastTransformation)
+        for num in string_dtype:
+            i_image = QPixmap(imageURLS.numberURL[int(num)])
+            amount_images += [i_image]
+            
+            total_width += i_image.width()
+
+            i_height = i_image.height()
+            if i_height > max_height:
+                max_height = i_height
+
+    middle_offset = 100
+    composite_icon_pixmap = QPixmap(QtCore.QSize(total_width + len(amount_images) * gap_pixels + middle_offset, max_height)) 
+    composite_icon_pixmap.fill(QColor(0, 0, 0, 0))
+
+    painter = QPainter(composite_icon_pixmap)
+    x = 0
+
+    for i in range(len(amount_images)):
+        image = amount_images[i]
+        y = 0
+        painter.drawPixmap(x, y, image)      # Draw the base image at (0, 0)
+        x += image.width() + gap_pixels
+        if i in [len(string_amount)-1,len(string_amount)]:
+            x += int(middle_offset/2)
+
+        
+
+    painter.end() # Finish painting
+
+        # 4. Create a QIcon from the composite QPixmap and set it
+    return QIcon(composite_icon_pixmap)

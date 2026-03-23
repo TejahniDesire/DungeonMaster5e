@@ -18,3 +18,21 @@ SmallRightArrowURL = AppURL +"images/small-right-arrow.png"
 BigConcentricCircleURL = AppURL + "images/BigCCircle.png"
 MidConcentricCircleURL = AppURL + "images/MidCCircle.png"
 SmallConcentricCircleURL = AppURL + "images/SmallCCircle.png"
+
+DiceURL =  AppURL + "images/Dice/d6.png"
+
+D4URL =  AppURL + "images/Dice/d4.png"
+D6URL =  AppURL + "images/Dice/d6.png"
+D8URL =  AppURL + "images/Dice/d8.png"
+D10URL =  AppURL + "images/Dice/d10.png"
+D12URL =  AppURL + "images/Dice/d12.png"
+D20URL =  AppURL + "images/Dice/d20.png"
+D100URL =  AppURL + "images/Dice/d100.png"
+DURL = AppURL + "images/Dice/D.png"
+
+numberURL = []
+for i in range(10):
+    numberURL += [AppURL + "images/Numbers/{}.png".format(i)]
+    # print(i,numberURL )
+
+InfoURL = AppURL + "images/info.png"

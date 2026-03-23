@@ -50,19 +50,55 @@ from Scripts.objectF import (
 from Scripts.charecterF import (
     inventory, charecter, charecterAttributes, charecterMechanics
     )
-from Scripts.customQT import (customTabs, QTHelper, style)
+from Scripts.customQT import (customTabs, QTHelper, style, customMainMenuTabs)
 
 from Scripts.metaF import (imageURLS, reading, EZPaths)
 
-class DnDWindow(QMainWindow):
+class MainMenu(QMainWindow):
 
-    def __init__(self):
+    def __init__(self,process_events,dnd_app_instance=None,):
         super().__init__()
         qdarktheme.setup_theme()
 
-        self.tcharecter = charecter.CharacterSheet()
-        self.setWindowTitle("Charecter Sheet")
+        main_outer_layout = QVBoxLayout()
 
+        self.scroll = QScrollArea()
+        self.scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setMinimumSize(700, 400)
+
+        widget_scroll = QWidget() # Underlaying tab for all
+        widget_scroll.setLayout(main_outer_layout)
+        self.scroll.setWidget(widget_scroll)
+        self.setCentralWidget(self.scroll)
+
+
+
+        self.stacklayout = QStackedLayout()
+
+
+        main_outer_layout.addLayout(self.stacklayout)
+
+
+        # tab Widgets_________________________________________________________________________________________________
+
+        self.main_tab = customMainMenuTabs.MainTab(dndWindow_func=partial(DnDWindow,partial(MainMenu,process_events),self,process_events),process_events=process_events,dnd_app=dnd_app_instance)
+        self.stacklayout.addWidget(self.main_tab)
+
+    def switch_tab(self, index: int):
+        self.stacklayout.setCurrentIndex(index)
+
+
+class DnDWindow(QMainWindow):
+
+    def __init__(self,main_menu_func,main_menu_instance,process_events,tcharecter:charecter.CharacterSheet):
+        super().__init__()
+        qdarktheme.setup_theme()
+
+        self.tcharecter = tcharecter
+        self.setWindowTitle("Charecter Sheet")
+        self.process_events = process_events
         main_outer_layout = QVBoxLayout()
 
         # Scrolling_______________________________
@@ -100,7 +136,7 @@ class DnDWindow(QMainWindow):
         self.inventory_tab = customTabs.Inventory(self.tcharecter)
         self.stacklayout.addWidget(self.inventory_tab)
 
-        self.options_tab = customTabs.Options()
+        self.options_tab = customTabs.Options(tcharecter_save_func=self.tcharecter.save,main_menu_func=partial(main_menu_func,self),main_menu_instance=main_menu_instance,process_events=self.process_events)
         self.stacklayout.addWidget(self.options_tab)
 
 
@@ -134,7 +170,6 @@ class DnDWindow(QMainWindow):
         # self.tcharecter.alter_attribute('prof','starter_level',
         #                                 self.tcharecter.get_specific_attribute('prof').get_total_base() + 3)
         self.tcharecter.alter_attribute('str', 'starter_level', 800,easy=True)
-
         self.tcharecter.alter_attribute('chr', 'starter_level', 8,easy=True)
 
         self.tcharecter.get_time().add(12,'hour')
@@ -145,7 +180,26 @@ class DnDWindow(QMainWindow):
         self.tcharecter.alter_attribute('dex', 'starter_level',  dex_base + 3,easy=True)
         self.tcharecter.alter_attribute('dex', 'cool_factor',  20,easy=True)
         self.tcharecter.alter_attribute('dex', 'rage',  12,easy=True)
+        self.tcharecter.alter_attribute_bonus('dex', 'love_sword',  12,easy=True)
 
+
+        self.tcharecter.alter_attribute('prof', 'starter_level',  23,easy=True)
+        mid_top_stats = self.tcharecter.get_all_mid_top()
+        mid_top_stats['hp'].alter_contrib_base('Monk level', 100,easy=True)
+        mid_top_stats['hp'].replenish(int(mid_top_stats['hp'].get_amount_missing() * .1))
+
+        mid_top_stats['speed'].alter_contrib_base('human race', 30,easy=True)
+
+        mid_top_stats['speed'].replenish(int(mid_top_stats['speed'].get_amount_missing() * .5))
+
+        mid_top_stats['ac'].alter_contrib_base('Splint Armor', 18,easy=True)
+        mid_top_stats['ac'].alter_contrib_base('Shield', 2,easy=True)
+
+        print()
+        print("new Prof: ", self.tcharecter.AbS['prof'].get_all_bases())
+        print("new Prof: ", self.tcharecter.AbS['prof'].get_total_base())
+        print("new prof:",self.tcharecter.all_skills['stealth'].get_total_bonus())
+        print()
         # self.tcharecter.get_specific_skills('sleight').give_expertise()
         # self.tcharecter.get_specific_top('name').set('Lucas Cyr')
         # self.tcharecter.get_specific_top('class').set('Killer')
@@ -213,6 +267,7 @@ class DnDWindow(QMainWindow):
         self.update()
 
 
+
     def update(self):
         self.tcharecter.update()
         self.main_tab.update()
@@ -221,6 +276,9 @@ class DnDWindow(QMainWindow):
     def switch_tab(self, index: int):
         self.stacklayout.setCurrentIndex(index)
 
+    # def loadCharecter(self,path):
+
+
 
 
 
@@ -228,7 +286,10 @@ class DnDWindow(QMainWindow):
 
 app = QApplication(sys.argv)
 
-window = DnDWindow()
+window = MainMenu(process_events=app.processEvents)
 window.show()
+
+# window = DnDWindow()
+# window.show()
 
 app.exec()

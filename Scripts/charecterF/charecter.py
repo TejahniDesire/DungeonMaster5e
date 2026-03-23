@@ -1,11 +1,87 @@
 
 import sys
 import pathlib
-
-from ..objectF import itemsDnD, pyHelper
-from ..metaF import directoryCrawler
-from . import charecterAttributes, inventory, charecterMechanics, time
+from functools import partial
 from datetime import datetime
+
+from ..objectF import itemsDnD, pyHelper, dataBase
+from ..metaF import directoryCrawler
+from . import charecterAttributes, inventory, charecterMechanics, time, characterHelper
+
+
+
+loadingSectionLabels = [
+    None, 
+    "Inventory", "Attack Inventory", "RP Stats", 
+    "Person Stats", "Ability Score", "Skills", 
+    "Mid Stats", "Hit Dice & Death Saves", "Time",
+    "Complete"]
+# savingSectionLabels = [None, "Inventory", "Attack Inventory", "RP Stats", "Person Stats", "Ability Score" , "Complete"]
+num_of_sections = len(loadingSectionLabels ) - 2
+frac_per_section = 1/num_of_sections
+inventories = 'inventories/'
+stats = 'stats/'
+mechanics = 'mechanics/'
+
+save_dirs_keys = [
+    'main_inventory',
+    'attack_inventory',
+    'rp_top_stats',
+    'person_stats',
+    'ability_score_stats',
+    'skill_stats',
+    'mid_stats_top',
+    'mid_stats_mid',
+    'time'
+    ]
+save_dirs_titles = [
+    'Main Inventory',
+    'Attack Inventory',
+    'RP Top Stats',
+    'Person Stats',
+    'Ability Score Stats',
+    'Skills',
+    "Mid Stats",
+    "Mid Stats Mid",
+    "Time"
+    ]
+save_dirs = [
+    inventories + 'main_inventory.txt',
+    inventories + 'attack_inventory.txt',
+    stats + 'rp_top_stats.txt',
+    stats + 'person_stats.txt',
+    stats + 'ability_score_stats.txt',
+    stats + 'skill_stats.txt',
+    stats + 'mid_stats_top.txt',
+    stats + 'mid_stats_mid.txt',
+    mechanics + 'time.txt'
+    ]
+
+
+save_dirs_dict = {}
+save_dirs_titles_dict = {}
+
+for i in range(len(save_dirs_keys)):
+    key = save_dirs_keys[i]
+    save_dirs_dict[key] = save_dirs[i]
+    save_dirs_titles_dict[key] = save_dirs_titles[i]
+
+
+# save_dictionary = {
+#     'main_inventory': inventories + 'main_inventory.txt',
+#     'attack_inventory': inventories + 'attack_inventory.txt',
+#     'rp_top_stats': stats + 'rp_top_stats.txt',
+#     'person_stats': stats + 'person_stats.txt',
+#     'ability_score_stats': stats + 'ability_score_stats.txt'
+# }
+# save_dictionary_titles = {
+#     'main_inventory':     'Main Inventory',
+#     'attack_inventory':   'Attack Inventory',
+#     'rp_top_stats':       'RP Top Stats',
+#     'person_stats':       'Person Stats',
+#     'ability_score_stats':'Ability Score Stats'
+# }
+# Saving Notices
 
 class CharacterSheet:
 
@@ -33,16 +109,22 @@ class CharacterSheet:
 
         """ Charecter Statistics-------------------------------------------------------------------------------------"""
         # Ability Score Counter
-        self.AbS = {
-            'str': charecterAttributes.Stat('Strength'),
-            'dex': charecterAttributes.Stat('Dexterity'),
-            'con': charecterAttributes.Stat('Constitution'),
-            'int': charecterAttributes.Stat('Intelligence'),
-            'wis': charecterAttributes.Stat('Wisdom'),
-            'chr': charecterAttributes.Stat('Charisma'),
-            'prof': charecterAttributes.Stat('Proficiency Bonus'),
-            'insp': 0
-        }
+        # self.AbS = {
+        #     'str': charecterAttributes.Stat(charecterAttributes.AbS_key_to_type['str']),
+        #     'dex': charecterAttributes.Stat(charecterAttributes.AbS_key_to_type['dex']),
+        #     'con': charecterAttributes.Stat(charecterAttributes.AbS_key_to_type['con']),
+        #     'int': charecterAttributes.Stat(charecterAttributes.AbS_key_to_type['int']),
+        #     'wis': charecterAttributes.Stat(charecterAttributes.AbS_key_to_type['wis']),
+        #     'chr': charecterAttributes.Stat(charecterAttributes.AbS_key_to_type['chr']),
+        #     'prof': charecterAttributes.Stat(charecterAttributes.AbS_key_to_type['prof']), # Use bases contrib only
+        #     # 'insp': 0
+        # }
+        self.AbS = {}
+        for key in charecterAttributes.AbS_key_to_type.keys():
+            AbS_type = charecterAttributes.AbS_key_to_type[key]
+            self.AbS[key] = charecterAttributes.Stat(AbS_type)
+
+        self.insperation = pyHelper.ReferenceNumber(0,True)
 
         # Skills_________________________________________________________
         self.saving_throws = {
@@ -72,7 +154,7 @@ class CharacterSheet:
             'deception': charecterAttributes.Skill("Deception", self.AbS['chr'], self.AbS['prof']),
             'intimidation': charecterAttributes.Skill("Intimidation", self.AbS['chr'], self.AbS['prof']),
             'performance': charecterAttributes.Skill("Performance", self.AbS['chr'], self.AbS['prof']),
-            'persuasian': charecterAttributes.Skill("Persuasian", self.AbS['chr'], self.AbS['prof'])
+            'persuasian': charecterAttributes.Skill("Persuasian", self.AbS['chr'], self.AbS['prof']),
         }
 
         # Specific skills__________
@@ -132,8 +214,8 @@ class CharacterSheet:
             'ac': charecterAttributes.Stat('Armor Class'),
             'init': charecterAttributes.Skill('Initiative', self.AbS['dex'], self.AbS['prof']),
             'speed': charecterAttributes.ConsumableStat('Speed'),
-            'mhp': charecterAttributes.Stat('Hit Point Maximum'),
-            'chp': charecterAttributes.Stat('Current Hit Points')
+            'hp': charecterAttributes.ConsumableStat('Hit Points'),
+            # 'chp': charecterAttributes.Stat('Current Hit Points')
         }
 
         # __________________________________
@@ -151,10 +233,14 @@ class CharacterSheet:
 
         # Stats for the right top of the screen
 
+        # Meta
+        self.data_base = dataBase.DataBasePage()
+        
+
     def update(self):
         for key in list(self.AbS.keys()):
-            if key == 'insp':
-                continue
+            # if key == 'insp':
+            #     continue
             self.AbS[key].update()
 
         for key in list(self.all_skills.keys()):
@@ -166,26 +252,201 @@ class CharacterSheet:
         self.inventory.update()
         self.attack_inventory.update()
 
-    def save(self,path:str):
+    def save(self,path:str,progress,processEvents,save_name=None):
+        save_delin = '(138055)'
         if path[-1] != '/':
             path += '/'
-        save_dir = path + "{}_save".format(self.get_name()) +  datetime.now().strftime("%D_%H_%M_%S_%f").replace('/','_') + '/'
+
+        path_to_dir = path + self.get_name() + '/'
+        directoryCrawler.createSubDirectory(path_to_dir,kill_policy=False)
+        
+
+        save_file_name = "{}_save".format(self.get_name()) + save_delin +  datetime.now().strftime("%m_%d_%y_%H_%M_%S_%f") + '/'
+        save_dir =path_to_dir  + save_file_name 
         directoryCrawler.createSubDirectory(save_dir,kill_policy=True)
-        # Inventory Protocal
-        inventory_file_dir = save_dir + 'inventories/' + 'main_inventory.txt'
-        inventory_dir_dict = {'folder_dir':save_dir + 'inventories/'}
-        inventory_dir_dict['file_dir'] = inventory_dir_dict['dir'] + 'main_inventory.txt'
+# save_dictionary = {
+#     'main_inventory': inventories + 'main_inventory.txt',
+#     'attack_inventory': inventories + 'attack_inventory.txt',
+#     'rp_top_stats': stats + 'rp_top_stats.txt',
+#     'person_stats': stats + 'person_stats.txt',
+#     'ability_score_stats': stats + 'ability_score_stats.txt'
+# }
+
+
+        save_dirs_funct_dict = {
+            'main_inventory': partial(self.inventory.getItemDictionary),
+            'attack_inventory': partial(self.attack_inventory.getItemDictionary),
+            'rp_top_stats': partial(characterHelper.getGeneralStatDict,self.top_stats),
+            'person_stats': partial(characterHelper.getGeneralStatDict,self.person),
+            'ability_score_stats': partial(characterHelper.getGeneralStatDict,self.AbS),
+            'skill_stats': partial(characterHelper.getGeneralStatDict,self.all_skills),
+            'mid_stats_top': partial(characterHelper.getGeneralStatDict,self.mid_stat_top),
+            'mid_stats_mid': partial(characterHelper.getGeneralStatDict,self.mid_stat_mid),
+            'time':partial(self.time.get_save_diction)
+        }
+
+        for key in save_dirs_keys:
+            directory = save_dir + save_dirs_dict[key]
+            funct = save_dirs_funct_dict[key]
+            title = save_dirs_titles_dict[key] 
+            # print(funct())
+            self.data_base.AddPage(funct(),title,directory,replace_old=True)
+            self.data_base.writePage(title=title)    
+            progress.addProgress(frac_per_section)
+            processEvents()
+               
+               
+               
+        progress.completeProgress()
+        processEvents()
+
+
+        # Inventory Protocal____________________________________________________________________________________________________
+        # inventory_file_dir = save_dir + save_dictionary['main_inventory']
+        # self.data_base.AddPage(self.inventory.getItemDictionary(),'Main Inventory',inventory_file_dir,replace_old=True)
+        # self.data_base.writePage(title='Main Inventory')        
+        # # Attack Inventory Protocal_____________________________________________________________________________________________
+        # inventory_file_dir = save_dir + save_dictionary['attack_inventory']
+        # self.data_base.AddPage(self.attack_inventory.getItemDictionary(),'Attack Inventory',inventory_file_dir,replace_old=True)
+        # self.data_base.writePage(title='Attack Inventory')     
+        # # Top RP Stats Protocal_________________________________________________________________________________________________
+        # rp_top_stats_dir = save_dir + save_dictionary['rp_top_stats']
+        # self.data_base.AddPage(characterHelper.getGeneralStatDict(self.top_stats), 'RP Top Stats',rp_top_stats_dir,replace_old=True)
+        # self.data_base.writePage(title='RP Top Stats')   
+
+        # # Person Stats Protocal_________________________________________________________________________________________________
+        # person_stats_dir = save_dir + save_dictionary['person_stats']
+        # self.data_base.AddPage(characterHelper.getGeneralStatDict(self.person), 'Person Stats',person_stats_dir,replace_old=True)
+        # self.data_base.writePage(title='Person Stats')   
+
+        # Ability Score Stats 
+
+
+    def load(self,save_dir,progress:pyHelper.ProgressMarker,processEvents):
+        if save_dir[-1] != '/':
+            save_dir += '/'
+
+        
+        # Inventory____________________________________________________________
+        inventory_file_dir = save_dir + save_dirs_dict['main_inventory']
+
+        self.data_base.readPage(inventory_file_dir)        
+        items = itemsDnD.loadItemViewerDicts(self.data_base.getPage(save_dirs_titles_dict['main_inventory']))
+        frac_per_items = (1 / len(items)) * frac_per_section
+        for item in items:
+            self.inventory.add_item(item=item)
+            progress.addProgress(frac_per_items)
+            processEvents()
+
+        # Attack Inventory____________________________________________________________
+        inventory_file_dir = save_dir + save_dirs_dict['attack_inventory']
+        self.data_base.readPage(inventory_file_dir)   
+        items = itemsDnD.loadItemViewerDicts(self.data_base.getPage(save_dirs_titles_dict['attack_inventory']))
+        frac_per_items = (1 / len(items)) * frac_per_section
+        for item in items:
+            self.attack_inventory.add_attack_item(item=item)
+            progress.addProgress(frac_per_items)
+            processEvents()
+
+        # Top RP Stats Protocal_________________________________________________________________________________________________
+        rp_top_stats_dir = save_dir + save_dirs_dict['rp_top_stats']
+        self.data_base.readPage(rp_top_stats_dir)  
+        viewer_dict = self.data_base.getPage(save_dirs_titles_dict['rp_top_stats'])
+
+        frac_per_items = (1 / len(viewer_dict.keys())) * frac_per_section
+        
+        characterHelper.readGeneralStatViewerDict(viewer_dict,self.top_stats,save_dirs_titles_dict['rp_top_stats'],progress,frac_per_items,processEvents)
+
+        # Person Stats Protocal_________________________________________________________________________________________________
+        key = 'person_stats'
+        person_stats_dir = save_dir + save_dirs_dict[key ]
+        self.data_base.readPage(person_stats_dir)  
+        viewer_dict = self.data_base.getPage(save_dirs_titles_dict[key ])
+
+        frac_per_items = (1 / len(viewer_dict.keys())) * frac_per_section
+        characterHelper.readGeneralStatViewerDict(viewer_dict,self.person,save_dirs_titles_dict[key ],progress,frac_per_items,processEvents)
+
+        # Ability Score Protocal_________________________________________________________________________________________________
+        key = 'ability_score_stats'
+        ability_score_stats_dir = save_dir + save_dirs_dict[key]
+        self.data_base.readPage(ability_score_stats_dir) 
+        viewer_dict = self.data_base.getPage(save_dirs_titles_dict[key])
+
+        frac_per_items = (1 / len(viewer_dict.keys())) * frac_per_section
+        characterHelper.readAbilityScoreDict(viewer_dict,self.AbS,progress,frac_per_items,processEvents)
+
+        # skill Protocal_________________________________________________________________________________________________
+        key = 'skill_stats'
+        ability_score_stats_dir = save_dir + save_dirs_dict[key]
+        self.data_base.readPage(ability_score_stats_dir) 
+        viewer_dict = self.data_base.getPage(save_dirs_titles_dict[key])
+
+        frac_per_items = (1 / len(viewer_dict.keys())) * frac_per_section
+        characterHelper.readSkillsViewerDict(viewer_dict,self.all_skills,progress,frac_per_items,processEvents)
+
+        # Mid Stats Top Protocal_________________________________________________________________________________________________
+        key = 'mid_stats_top'
+        ability_score_stats_dir = save_dir + save_dirs_dict[key]
+        self.data_base.readPage(ability_score_stats_dir) 
+        viewer_dict = self.data_base.getPage(save_dirs_titles_dict[key])
+
+        frac_per_items = (1 / len(viewer_dict.keys())) * frac_per_section
+        characterHelper.readMidStatsViewerDict(viewer_dict,self.mid_stat_top,progress,frac_per_items,processEvents)
+
+        # Mid Stats Mid Protocal_________________________________________________________________________________________________
+        key = 'mid_stats_mid'
+        ability_score_stats_dir = save_dir + save_dirs_dict[key]
+        self.data_base.readPage(ability_score_stats_dir) 
+        viewer_dict = self.data_base.getPage(save_dirs_titles_dict[key])
+
+        frac_per_items = (1 / len(viewer_dict.keys())) * frac_per_section
+        characterHelper.readMidStatsViewerDict(viewer_dict,self.mid_stat_mid,progress,frac_per_items,processEvents)
+
+        # Time Protocal_________________________________________________________________________________________________
+        key = 'time'
+        ability_score_stats_dir = save_dir + save_dirs_dict[key]
+        self.data_base.readPage(ability_score_stats_dir) 
+        viewer_dict = self.data_base.getPage(save_dirs_titles_dict[key])
+
+        self.time.set_viewer_dict(viewer_dict)
+        progress.addProgress(frac_per_section)
+        processEvents()
         
 
+        # for i in range(len(viewer_dict.keys())):
+            
+        #     name = viewer_dict[i].getValue()
+        #     substring = viewer_dict[i][0].getValue()
+        #     props = substring.split('-*^*-')
+        #     print(substring )
+        #     if props[0] == 'True':props[1] = int(props[1])
+
+            
+
+        #     input_diction_key = {
+        #         'Name':'name',
+        #         'Class':'class',
+        #         'Level': 'level',
+        #         'Background': 'background',
+        #         'Race': 'race',
+        #         'Alignment': 'alignment',
+        #         'Experience points':'experience'
+        #     }[name]
+
+        #     stat = self.top_stats[input_diction_key]
+
+        #     if props[0] == 'True':
+        #         print("SETTING A NUMBER")
+        #     stat.set(props[1])
+
+        #     progress.addProgress(frac_per_items)
+        #     processEvents()
 
 
 
-        directoryCrawler.createSubDirectory(inventory_dict['dir'],kill_policy=False)
-        directoryCrawler.createTxtFile(inventory_dict['txt'],'',True)
-        itemDict = self.inventory.getItemDictionary()
-
-        
-
+        print("PROGRESS: ", progress)
+        progress.completeProgress()
+        processEvents()
         
         
 
@@ -201,7 +462,6 @@ class CharacterSheet:
             'wis': DT.Stat('Wisdom'),
             'chr': DT.Stat('Charisma'),
             'prof': DT.Stat('Proficiency Bonus'),
-            'insp': 0
         :param attribute:
         :return:
         """
@@ -222,6 +482,9 @@ class CharacterSheet:
         :return:
         """
         return self.specific_skills[attribute]
+    
+    def get_skills_of_attribute_keys(self, attribute: str):
+        return self.specific_skills[attribute].keys()
 
     def get_skill(self, skill:str):
         """
@@ -247,6 +510,9 @@ class CharacterSheet:
         :return: one of above
         """
         return self.all_skills[skill]
+    
+    def get_all_saving_throws(self):
+        return self.saving_throws
 
     def get_all_top(self):
         '''
@@ -358,11 +624,11 @@ class CharacterSheet:
     def add_attribute_source(self,attribute:str,source,new_base_value:pyHelper.ReferenceNumber):
         self.AbS[attribute].add_base(source,new_base_value)
 
-    def alter_attribute_bonus(self, attribute:str,source,new_bonus_value:int):
-        self.AbS[attribute].alter_contrib_bonus(source, new_bonus_value)
+    def alter_attribute_bonus(self, attribute:str,source,new_bonus_value:int,easy=False):
+        self.AbS[attribute].alter_contrib_bonus(source, new_bonus_value,easy)
 
-    def add_attribute_bonus_source(self, attribute:str,source,new_bonus_value:pyHelper.ReferenceNumber,easy=False):
-        self.AbS[attribute].add_bonus(source, new_bonus_value,easy)
+    def add_attribute_bonus_source(self, attribute:str,source,new_bonus_value:pyHelper.ReferenceNumber):
+        self.AbS[attribute].add_bonus(source, new_bonus_value)
 
     def remove_attribute_contrib(self, attribute:str,source):
         self.AbS[attribute].remove_base(source)

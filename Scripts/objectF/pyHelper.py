@@ -164,3 +164,101 @@ class ReferenceString:
     
     def __str__(self):
         return self.string
+    
+class ProgressMarker:
+
+    def __init__(self,functions=[]):
+        
+
+        self.fraction = ReferenceNumber(0.0,is_int=False)
+        self.functions = []
+        if type(functions) is list:
+            for function in functions:
+                self.functions += [function]
+        else:
+            self.functions += [functions]
+
+    def addFunction(self,function):
+        """_summary_
+
+        Args:
+            function (_type_): a function that takes a fraction as an argument
+        """
+        self.functions += [function]
+    
+    def propagateFunctions(self):
+        for function in self.functions:
+            function(self.getProgressValue())
+
+    def getProgessRef(self):
+        return self.fraction
+    
+    def getProgressValue(self):
+        return self.fraction.getValue()
+    
+    def setProgress(self,value):
+        if (value > 1) or (value < 0): raise ValueError("Value must be between 0 and 1 inclusively")
+        self.fraction.setValue(value)
+        self.propagateFunctions()
+
+    def resetProgress(self):
+        self.fraction.setValue(0.0)
+        self.propagateFunctions()
+        
+    def completeProgress(self):
+        self.fraction.setValue(1.0)
+        self.propagateFunctions()
+
+    def addProgress(self,value):
+        if (value > 1) or (value < 0): raise ValueError("Value must be between 0 and 1 inclusively")
+        self.fraction.add(float(value))
+        self.propagateFunctions()
+
+
+    def __str__(self):
+        return "{:.2f}%".format(self.fraction.getValue() * 100) 
+
+# TIME______________________________________________________________________________________________________________________________
+Month = {
+    '01':  'January',
+    '02':  'February',
+    '03':  'March',
+    '04':  'April',
+    '05':  'May',
+    '06': 'June',
+    '07': 'July',
+    '08': 'August',
+    '09': 'September',
+    '1':  'January',
+    '2':  'February',
+    '3':  'March',
+    '4':  'April',
+    '5':  'May',
+    '6': 'June',
+    '7': 'July',
+    '8': 'August',
+    '9': 'September',
+    '10': 'October',
+    '11': 'November',
+    '12': 'December',
+}
+
+def hourTime(hour,minute,second):
+    hour = int(hour)
+
+    if hour > 12:
+        string = str(hour % 12) + ':' + minute + ':' + second + 'PM'
+    else:
+        string = str(hour) + ':' + minute + ':' + second + 'PM'
+
+    return string
+
+
+
+def timeToHuman(string):
+    parts = string.split('_')
+
+    hstring = Month[parts[0]] + '-' + parts[1] + '-' + '20' + parts[2] + '-' + hourTime(parts[3],parts[4],parts[5]) 
+
+    return hstring
+

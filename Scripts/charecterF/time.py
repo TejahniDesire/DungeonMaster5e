@@ -4,7 +4,7 @@ from ..objectF import pyHelper
 
 class Time: 
 
-    def __init__(self,name='Grand Time',splinter=False,initial=None,unit=None,covert=False,protected_count=0):
+    def __init__(self,name='Grand Time',splinter=False,initial=None,unit=None,covert=False,protected_count=0,player_name=None):
         
         # [week, day, hour, minute, second]
         self.unit_to_index = {
@@ -25,9 +25,12 @@ class Time:
         
         self.name = name
         self.time = pyHelper.ReferenceNumber(0) # seconds
+        self.initial = 0
         self.show_time = [0,0,0,0,0] # [Year, Month, Week, Day, Second]
         self.covert = covert
         self.protected_count = protected_count
+        self.player_name = player_name
+
 
         # Special____________________________________________________________
         self.special_unit_to_index = {
@@ -40,17 +43,15 @@ class Time:
             'second':6
         }
         self.special_show_time =[0,0,0,0,0,0,0] 
-
-        
         self.special_unit_basis = [31536000, 2592000] # seconds in a gegorian [year, month]
         # Special____________________________________________________________
 
         self.splinters = {}
-        self.non_covert_keys = []
+        self.covert_splinters = {}
+        
+
+        
         self.isSplinter = False
-
-        self.initial = 0
-
         if splinter is True:
             self.isSplinter = True
             self.initial = toSecond(initial,unit)        
@@ -62,6 +63,9 @@ class Time:
         self.updateShowTime()
         for init in self.splinters.keys():
             self.splinters[init].updateShowTime()
+
+        for init in self.covert_splinters.keys():
+            self.covert_splinters[init].updateShowTime()
 
     def isCovert(self):
         return self.covert
@@ -87,17 +91,18 @@ class Time:
         self.special_unit_basis = [units]  
         self.updateShowTime()
 
-        for init in self.non_covert_keys:
+        for init in self.splinters.keys():
             self.splinters[init].setSpecialTimeBasis(units)
             self.splinters[init].updateShowTime()
 
-    def splinterTime(self,name=None,covert=False,protect=False):
-        if self.isSplinter:
-            raise KeyError("Cannot splinter a splinter")
+    def splinterTime(self,name=None,covert=False,protect=False,protection_count=None,initial_time=None,player_name=None):
+        if self.isSplinter: raise ValueError("Cannot splinter a splinter")
+        if (type(name) is not str) and (name is not None): raise ValueError("Name must be a string or None, not '{}'".format(type(name)))
         if name is None:
             name = "SubTime {}".format(len(self.splinters.values()) + 1)
 
-        initial_time = self.time.getValue()
+        if initial_time is None: initial_time = self.time.getValue()
+        elif not isinstance(initial_time, int):  raise ValueError("initial_time must be an integer or None, not '{}'".format(type(initial_time)))
 
         if initial_time in self.splinters.keys():
             if protect:
@@ -109,27 +114,49 @@ class Time:
         else:
             new_protected_count = 1
 
-        splinter = Time(name, True,initial=initial_time,unit='second',covert=covert,protected_count=new_protected_count)
+        if protection_count is not None:
+            if type(protection_count) is not int: raise ValueError("protection_count must be an integer or None")
+            new_protected_count = protection_count
+
+        splinter = Time(name, splinter=True,initial=initial_time,unit='second',covert=covert,protected_count=new_protected_count,player_name=player_name)
 
         if not covert:
-            self.non_covert_keys += [initial_time]
-        self.splinters[initial_time ] = splinter
+            self.splinters[initial_time ] = splinter
+        else:
+            self.covert_splinters[initial_time ] = splinter
+        
         return initial_time , splinter
 
-    def removeSplinter(self,initial_time):
-        query_splinter = self.splinters[initial_time]
+    def removeSplinter(self,initial_time=None,covert=False, splinter=None):
+        if splinter is not None:
+            # 
+            if not splinter.isSplinter: raise ValueError("Attempting to remove a none splinter")
+
+            initial_time = splinter.getInit()
+            covert = splinter.isCovert
+        else:
+            if initial_time is None: raise ValueError("splinter and initial_time cannot both be None")
+    
+
+        if covert:
+            query_splinter = self.covert_splinters[initial_time]
+            query_dictionary = self.covert_splinters
+        else: 
+            query_splinter = self.splinters[initial_time]
+            query_dictionary = self.splinters
+
         if query_splinter.isProtected():
             print("WARNING: Attempting to delete protected splinter. First unprotect the splinter.")
             return
-        del self.splinters[initial_time]
+    
+        del query_dictionary[initial_time]
 
     def getInit(self):
         return self.initial
 
     def add(self,amount:int,unit:str):
         
-        if type(amount) is not int:
-            raise ValueError("Amount must be an int")
+        if not isinstance(amount, int):raise ValueError("Amount must be an int")
         
         for init in self.splinters.keys():
             self.splinters[init].add(amount,unit)
@@ -142,12 +169,29 @@ class Time:
         for init in self.splinters.keys():
             self.splinters[init].updateShowTime()
 
+    def setTime(self,amount:int,unit:str):
+        if not isinstance(amount, int):raise ValueError("Amount must be an int")
+        amount = toSecond(amount,unit)
+
+        self.time.setValue(amount)
+
+        for init in self.splinters.keys():
+
+            splinter_amount = amount - init
+            self.splinters[init].setTime(splinter_amount,unit)
+
+        self.update()
+
+    def setPlayerName(self,name):
+        self.player_name = name
+
     def getSplinter(self,time):
         self.splinters[time]
 
-    def getSplinters(self):
-        return self.splinters
-    
+    def getSplinters(self,covert=False):
+        if covert: return self.covert_splinters
+        else: return self.splinters
+
     def getTime(self,unit=None,absolute=False):
         """_summary_
 
@@ -160,7 +204,7 @@ class Time:
         if unit is None:
 
             if absolute:
-                return self.time # seconds
+                return self.time.getValue() # seconds
             else:
                 return self.show_time
             
@@ -184,7 +228,71 @@ class Time:
             return rlist
 
         raise ValueError("Unit of type '{}' unknown".format(type(unit)))
-                            
+        
+        
+    def get_save_diction(self):
+
+        name = "Time"
+
+        diction = {
+            'time': {str(self.time.getValue()):0}
+        }
+        
+        diction["splinters"] = {}
+
+
+        for init in self.splinters.keys():
+            splinter = self.splinters[init]
+            splinter_diction = {
+                'name': {splinter.getName():0},
+                'init': {str(init):0},
+                'protected':{str(splinter.getProtectedStatus()):0},
+                'covert': {str(splinter.isCovert()):0},
+                'player_name': {str(splinter.player_name):0}
+            }
+
+            diction["splinters"][splinter.getName() + str(init)] = splinter_diction
+
+        diction["covert_splinters"] = {}
+        for init in self.covert_splinters.keys():
+            splinter = self.covert_splinters[init]
+            splinter_diction = {
+                'name': {splinter.getName():0},
+                'init': {str(init):0},
+                'protected':{str(splinter.getProtectedStatus()):0},
+                'covert': {str(splinter.isCovert()):0},
+                'player_name': {str(splinter.player_name):0}
+            }
+
+            diction["covert_splinters"][splinter.getName() + str(init)] = splinter_diction
+
+        return diction
+
+
+    def set_viewer_dict(self,viewerDict):
+
+        time = int(viewerDict[0][0].getValue())
+        
+        for key in viewerDict[1].keys():
+
+            diction = viewerDict[1][key]
+            name = diction[0][0].getValue()
+            init = int(diction[1][0].getValue())
+            protected = int(diction[2][0].getValue())
+            covert = diction[3][0].getValue() == "True"
+            player_name = diction[4][0].getValue()
+            if player_name == 'None':
+                player_name = None
+
+            self.splinterTime(name=name,covert=covert,protection_count=protected ,initial_time=init,player_name=player_name)
+            time_difference = init 
+
+        self.setTime(time,'second')
+
+            
+
+
+
 
         
     

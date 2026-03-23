@@ -150,6 +150,7 @@ class DataBasePage:
         page = self.getPage(title=title)
         
         string = page.recursiveCodePrint()
+        directoryCrawler.createSubDirectory(page.getFolderDir(),kill_policy=False)
         directoryCrawler.createTxtFile(page.getFileDir(),string,True)
         
 def convertStrDict(str_diction,title=None,higherdict=None,order=1,file_dir=None,keylist=None):

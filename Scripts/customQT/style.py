@@ -12,11 +12,14 @@ LabelFont3 = QFont('Times', 10, QFont.Decorative)  # Skills
 LabelFontBigBold = QFont('Times', 15, QFont.Bold)  # Skills
 LabelFontSmallBold = QFont('Times', 13, QFont.Decorative)  # Skills
 
+LargeLabelFontBold = QFont('Times', 45, QFont.Bold)
+
 ItemLabelFont = QFont('Times', 14, QFont.Decorative)
 
 # Colors
 main_highlight = "darkred"
 secondary_higlight = "crimson"
+tertiary_highlight  = "#470000"
 
 main_confirm = "green"
 secondary_confirm = "darkgreen"
@@ -32,8 +35,16 @@ TabButtonSheet2 = ("QPushButton {color: white}"
                    "QPushButton:hover {color: white; background-color: " + main_highlight + "}"
                    "QPushButton:pressed {color: white; background-color: " + secondary_higlight +"}"
                    )
+TabButtonSheet3 = ("QPushButton {background-color: #3e3e42;color: white;  border-radius: 9px}"
+                   "QPushButton:hover {color: white; background-color: " + main_highlight + "}"
+                   "QPushButton:pressed {color: white; background-color: " + secondary_higlight +"}"
+                   )
+
 SubButtonSheet = ("QPushButton {color: white; background-color: grey; border-radius: 9px} "
                   "QPushButton:pressed {color: white; background-color: darkgrey}"
+                  "QPushButton:hover {color: white; background-color: " + main_highlight + "}"
+                  )
+SubButtonSheet2 = ("QPushButton:pressed {color: white; background-color: darkgrey}"
                   "QPushButton:hover {color: white; background-color: " + main_highlight + "}"
                   )
 
@@ -45,6 +56,13 @@ SubCheckedSheet = ("QCheckBox {color: white; background-color: grey; border-radi
 DarkGreyLabel = "QLabel {background-color: black;color: white}"
 GreyLabel = ("QLabel {background-color: #3e3e42;color: white;  border-radius: 3"
              "px}")
+GreyLabel2 = ("QLabel {background-color: #3e3e42;color: white;  border-radius: 15"
+             "px}")
+RedFontGreyLabel2 = ("QLabel {background-color: #3e3e42;color: " + 'red' + ";  border-radius: 15;"
+             "px}")
+GreenFontGreyLabel2 = ("QLabel {background-color: #3e3e42;color: " + 'green' + ";  border-radius: 15;"
+             "px}")
+
 
 Attacklabel =  "QLabel {background-color: #3e3e42;color: white}"
 
@@ -61,6 +79,25 @@ ItemEditButton = (
                 "QPushButton:hover {color: white; background-color: " + main_highlight + "}"
                 "QPushButton:pressed {color: white; background-color: " + secondary_higlight +"}"
                   )
+ItemEditButton2 = (
+                "QPushButton {border-radius: 15px;background-color: #3e3e42}"
+                "QPushButton:hover {color: white; background-color: " + main_highlight + "}"
+                "QPushButton:pressed {color: white; background-color: " + secondary_higlight +"}"
+                  )
+
+GreenItemEditButton = ( 
+    "QPushButton {border-radius: 15px;background-color: " + secondary_confirm + "}"
+    "QPushButton:hover {color: white; background-color: " + main_highlight + "}"
+    "QPushButton:pressed {color: white; background-color: " + secondary_higlight +"}"
+    )
+
+RedItemEditButton = ( 
+    "QPushButton {border-radius: 15px;background-color: " + tertiary_highlight + "}"
+    "QPushButton:hover {color: white; background-color: " + main_highlight + "}"
+    "QPushButton:pressed {color: white; background-color: " + secondary_higlight +"}"
+    )
+                
+
 
 ConfirmEditButton = (
                 "QPushButton {border-radius: 15px;background-color: gray}"
@@ -85,6 +122,7 @@ TimeMinusButton =     (
                 "QPushButton:hover {color: white; background-color: " + main_highlight + "}"
                 "QPushButton:pressed {color: white; background-color: " + secondary_higlight +"}"
                   )
+
 
 highlight_thickness = '5'
 highlighted_Qframe = (

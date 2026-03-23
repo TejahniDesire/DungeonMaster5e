@@ -3,6 +3,8 @@ import numpy as np
 
 from ..objectF import pyHelper
 
+# Key Vari
+
 line = "\n____________________________________________________________\n"
 half_line = "\n_____________________________\n"
 quart_line = "\n_______________\n"
@@ -10,6 +12,71 @@ line_left_new = "\n____________________________________________________________"
 line_right_new = "____________________________________________________________\n"
 line_no_new = "____________________________________________________________"
 
+Delineator = '-*^*-'
+
+AbS_type_to_key = {
+    'Strength':'str',
+    'Dexterity':'dex',
+    'Constitution':'con',
+    'Intelligence':'int',
+    'Wisdom':'wis',
+    'Charisma':'chr',
+    'Proficiency Bonus':'prof'
+}
+
+
+AbS_key_to_type= {
+    'str':'Strength',
+    'dex':'Dexterity',
+    'con':'Constitution',
+    'int':'Intelligence',
+    'wis':'Wisdom',
+    'chr':'Charisma',
+    'prof':'Proficiency Bonus'
+}
+
+skill_type_to_key ={
+    'Athletics':'athletics', 
+    "Acrobatics": 'acrobatics', 
+    "Sleight of Hand": 'sleight', 
+    "Stealth": 'stealth', 
+    "Arcana": 'arcana', 
+    "History": 'history', 
+    "Investigation": 'investigation', 
+    "Nature": 'nature', 
+    "Religion": 'religion', 
+    "Animal Handling": 'animal', 
+    "Insight": 'insight', 
+    "Medicine": 'medicine', 
+    "Perception": 'perception', 
+    "Survival": 'survival', 
+    "Deception": 'deception', 
+    "Intimidation": 'intimidation', 
+    "Performance": 'performance', 
+    "Persuasian": 'persuasian',
+
+}
+
+skill_key_to_type = {
+    'athletics': 'Athletics', 
+    'acrobatics': "Acrobatics", 
+    'sleight': "Sleight of Hand", 
+    'stealth': "Stealth", 
+    'arcana': "Arcana", 
+    'history': "History", 
+    'investigation': "Investigation", 
+    'nature': "Nature", 
+    'religion': "Religion", 
+    'animal': "Animal Handling", 
+    'insight': "Insight", 
+    'medicine': "Medicine", 
+    'perception': "Perception", 
+    'survival': "Survival", 
+    'deception': "Deception", 
+    'intimidation': "Intimidation", 
+    'performance': "Performance", 
+    'persuasian': "Persuasian",
+}
 
 def calc_bonus(ability_score):
     return math.floor(((ability_score - 10) / 2))
@@ -151,6 +218,44 @@ class Stat:
     def get_all_bonuses(self):
         return self.contrib_bonus
     
+    def get_save_diction(self):
+        diction = {
+            'contrib_base': {},
+            'contrib_bonus': {}
+        }
+
+        for key in self.get_all_bases().keys():
+            base = self.get_all_bases()[key]
+            diction['contrib_base'][key] = {str(base): 0}
+            
+
+        for key in self.get_all_bonuses().keys():
+            
+            bonus = self.get_all_bonuses()[key]
+            if key != 'nat_stat': diction['contrib_bonus'][key] = {str(bonus): 0}
+            
+
+        return self.type, diction
+    
+    def set_viewer_dict(self,viewerDict):
+        
+
+        for i in range(len(viewerDict[0].keys())):
+            contrib_base_name = viewerDict[0][i].getValue()
+            contrib_base_value = int(viewerDict[0][i][0].getValue())
+            self.add_base(contrib_base_name,pyHelper.ReferenceNumber(contrib_base_value,True))
+  
+
+        for i in range(len(viewerDict[1].keys())):
+            contrib_bonus_name = viewerDict[1][i].getValue()
+            contrib_bonus_value = int(viewerDict[1][i][0].getValue())
+            self.add_bonus(contrib_bonus_name,pyHelper.ReferenceNumber(contrib_bonus_value,True))
+
+
+
+
+        
+    
 
     def __str__(self):
         base_names = list(self.contrib_base)
@@ -186,17 +291,30 @@ class Stat:
     
 class ConsumableStat(Stat):
 
-    def __init__(self, attribute):
+    def __init__(self, attribute:str):
         super().__init__(attribute)
-        self.denom = self.total_base_val
+        self.denom = self.total_base_val # reference number
         self.numer = pyHelper.ReferenceNumber(self.denom.getValue(),True)
 
-    def get_total_base(self):
+    def get_denominator_ref(self):
+        return self.denom
+
+    def get_denominator_value(self):
+        return self.denom.getValue()
+
+    def get_numerator_ref(self):
+        return self.numer
+
+    def get_numerator_value(self):
+        return self.numer.getValue()
+
+    def get_total_frac_str(self):
 
         return "{}/{}".format(self.numer,self.denom)
 
     def update(self):
         super().update()
+
         return 
 
     def consume(self,amount):
@@ -206,8 +324,38 @@ class ConsumableStat(Stat):
 
         self.update()
 
-    def replenish(self,amount):
+    def replenish(self,amount:int):
+        if type(amount) not in [np.int64, int]: raise ValueError("Amount added to consumable stat must be an integer")
+        current_amount = self.numer.getValue()
+        max_amount = self.denom.getValue()
+
+        if (current_amount + amount) > max_amount:  raise ValueError("Amount added to consumable stat causes its final value to be over max")
+
+
+        self.numer.setValue(current_amount + amount)
+
+    def reset(self):
         self.numer.setValue(self.denom.getValue())
+
+    def get_save_diction(self):
+        self.type, diction = super().get_save_diction()
+
+        diction['current_value'] = {str(self.get_numerator_value()):0}
+
+        return self.type, diction
+
+    def set_viewer_dict(self,viewerDict):
+
+        super().set_viewer_dict(viewerDict)
+
+        current_amount = int(viewerDict[2][0].getValue())
+        self.replenish(current_amount)
+
+    def get_amount_missing(self):
+
+        return  self.denom.getValue() - self.numer.getValue()
+
+
 
 
 class Skill:
@@ -222,21 +370,20 @@ class Skill:
         self.base = base
 
         self.contrib = {
-            'nat_stat': self.base.get_total_bonus_ref(),
-            'prof': prof.get_total_base_ref(),
+            'nat_stat': pyHelper.ReferenceNumber(0,True),
+            'prof': pyHelper.ReferenceNumber(0,True),
             'expert': pyHelper.ReferenceNumber(0,True)
         }
 
         self.bonus = pyHelper.ReferenceNumber(0,True)
-
         self.have = False  # is this skill had by this charecter
         self.expertise = False
         self.prof = prof
 
     def update(self):
         self.contrib['nat_stat'] = self.base.get_total_bonus_ref()
-
         if self.has_skill():
+            
             self.contrib['prof'].setValue(self.prof.get_total_base())
             if self.is_expert():  # if expertise, double profeciency
                 self.contrib['expert'].setValue(self.prof.get_total_base())
@@ -246,6 +393,10 @@ class Skill:
         else:
             self.contrib['prof'].setValue(0) # if skill is not had, no proffeciency bonus
             self.contrib['expert'].setValue(0)
+
+        att_bonus_dict = self.base.get_all_bonuses()
+        for att_bonus_key in att_bonus_dict.keys():
+            if att_bonus_key != 'nat_stat': self.contrib[att_bonus_key] = att_bonus_dict[att_bonus_key]
 
         bonus = 0
 
@@ -333,6 +484,9 @@ class Skill:
     def contains_source(self,source:str):
         return source in self.contrib.keys()
     
+    def get_contrib(self):
+        return self.contrib
+    
     def __str__(self):
         base_names = list(self.contrib)
     
@@ -376,6 +530,33 @@ class Skill:
         string += '_____\n' + 'Total: ' + sign + str(self.bonus) + line
 
         return string
+    
+    def get_save_diction(self):
+
+        diction = {
+            'type': {self.base.get_type(): 0},
+            'have': {str(self.has_skill()): 0},
+            'expertise': {str(self.is_expert()): 0},
+            'contrib': {},
+        }
+
+        for key in self.contrib.keys():
+            if key in ['nat_stat','prof', 'expert']: continue
+            base = self.contrib[key]
+            diction['contrib'][key] = {str(base): 0}
+    
+        return self.name, diction
+
+    def set_viewer_dict(self,viewerDict):
+        self.have = viewerDict[1][0].getValue() == 'True'
+        self.expertise = viewerDict[2][0].getValue() == 'True'
+
+        for i in range(len(viewerDict[3].keys())):
+            contrib_name = viewerDict[3][i].getValue()
+            contrib_value = int(viewerDict[3][i][0].getValue())
+            self.add_bonus(contrib_name,pyHelper.ReferenceNumber(contrib_value,True))
+
+        self.update()
 
 
 class TopStatValue:
@@ -410,10 +591,38 @@ class TopStatValue:
     def set(self, new_value):
         if self.is_number:
             self.value.setValue(new_value)
-        self.value = new_value
+        else:
+            self.value = new_value
+
+
+
+
+    # def set_is_number(self,is_number):
+    #     self.is_number = is_number
 
     def __str__(self):
         return self.type + ': ' + str(self.value)
+    
+
+    def get_save_diction(self):
+        name = self.type 
+        string = ''
+
+        for prop in [self.is_number,self.value]:
+            string += str(prop) + Delineator
+        
+        return name, {string:0}
+    
+    # def get_save_dict(self):
+    #     diction = {}
+    #     name, string = self.get_Stat_Text()
+    #     diction[name] = string
+
+    #     return self.type,diction
+
+    
+    # def save(self):
+
 
 
 class RPTraits:
@@ -431,4 +640,15 @@ class RPTraits:
     def set_text(self, text: str):
         self.text = text
 
+    # def set(self, text: str):
+    #     self.set_text(text)
+
+    def get_save_diction(self):
+        name = self.type 
+        string = ''
+
+        for prop in [self.text]:
+            string += str(prop) + Delineator
+        
+        return name, {string:0}
 
