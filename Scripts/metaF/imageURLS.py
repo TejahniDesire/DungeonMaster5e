@@ -1,4 +1,6 @@
-AppURL = "/home/tej/Desktop/Code_Stuff/PRepo/DungeonMaster5e/Scripts/"
+from .EZPaths import *
+# AppURL = "/home/tej/Desktop/Code_Stuff/PRepo/DungeonMaster5e/Scripts/"
+AppURL = The_Dungeon_Path
 IconUrl = AppURL + "images/editIcon.png"
 AddUrl = AppURL + "images/plusIcon.png"
 MinusUrl = AppURL + "images/minusIcon.png"
